@@ -637,6 +637,21 @@ files = [
 ]
 
 [[package]]
+name = "python-mpd2"
+version = "3.1.1"
+description = "A Python MPD client library"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "python-mpd2-3.1.1.tar.gz", hash = "sha256:4baec3584cc43ed9948d5559079fafc2679b06b2ade273e909b3582654b2b3f5"},
+    {file = "python_mpd2-3.1.1-py2.py3-none-any.whl", hash = "sha256:86bf1100a0b135959d74a9a7a58cf0515bf30bb54eb25ae6fb8e175e50300fc3"},
+]
+
+[package.extras]
+twisted = ["Twisted"]
+
+[[package]]
 name = "rich"
 version = "15.0.0"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
@@ -789,4 +804,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<3.14"
-content-hash = "8744e0c897058f74eff88e306dcd39079ffdb29e5e187e63bc459efeab31b5c5"
+content-hash = "a4688a346a650714d68d673d12705765d6394b17d2d96299c0a0ebc641b957e5"

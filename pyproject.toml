@@ -12,7 +12,8 @@ dependencies = [
     "st7789 (>=1.0.1,<2.0.0)",
     "mopidy (>=4.0.2,<5.0.0)",
     "mopidy-raspberry-gpio (>=1.0.4,<2.0.0)",
-    "mopidy-local (>=4.0.1,<5.0.0)"
+    "mopidy-local (>=4.0.1,<5.0.0)",
+    "python-mpd2 (>=3.1.1,<4.0.0)"
 ]
 
 
