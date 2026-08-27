@@ -2,20 +2,18 @@
 name = "mp3"
 version = "0.1.0"
 description = "A mp3 player designed from the ground up to be run on the raspberry pi zero 2w with the Pimoroni's pirate audio board line up."
-authors = [
-    {name = "EthanDGee",email = "workethangee@gmail.com"}
-]
+authors = [{ name = "EthanDGee", email = "workethangee@gmail.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "st7789 (>=1.0.1,<2.0.0)",
-    "mopidy (>=4.0.2,<5.0.0)",
-    "mopidy-raspberry-gpio (>=1.0.4,<2.0.0)",
-    "mopidy-local (>=4.0.1,<5.0.0)",
-    "python-mpd2 (>=3.1.1,<4.0.0)",
-    "mopidy-mpd>=4.0.1",
-    "rpi-gpio>=0.7.1",
+  "st7789 (>=1.0.1,<2.0.0)",
+  "mopidy (>=4.0.2,<5.0.0)",
+  "mopidy-raspberry-gpio (>=1.0.4,<2.0.0)",
+  "mopidy-local (>=4.0.1,<5.0.0)",
+  "python-mpd2 (>=3.1.1,<4.0.0)",
+  "mopidy-mpd>=4.0.1",
+  "rpi-lgpio",
 ]
 
 
