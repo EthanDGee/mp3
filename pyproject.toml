@@ -15,6 +15,7 @@ dependencies = [
     "mopidy-local (>=4.0.1,<5.0.0)",
     "python-mpd2 (>=3.1.1,<4.0.0)",
     "mopidy-mpd>=4.0.1",
+    "rpi-gpio>=0.7.1",
 ]
 
 

@@ -227,6 +227,7 @@ dependencies = [
     { name = "mopidy-mpd" },
     { name = "mopidy-raspberry-gpio" },
     { name = "python-mpd2" },
+    { name = "rpi-gpio" },
     { name = "st7789" },
 ]
 
@@ -237,6 +238,7 @@ requires-dist = [
     { name = "mopidy-mpd", specifier = ">=4.0.1" },
     { name = "mopidy-raspberry-gpio", specifier = ">=1.0.4,<2.0.0" },
     { name = "python-mpd2", specifier = ">=3.1.1,<4.0.0" },
+    { name = "rpi-gpio", specifier = ">=0.7.1" },
     { name = "st7789", specifier = ">=1.0.1,<2.0.0" },
 ]
 
@@ -381,6 +383,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/e2/d6/d0b9fafc73b657672
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/68/1fc93dd759605b5d00fc98b50200739e41ed32bd22d6ba35ca6c3932371b/rich_rst-2.1.0-py3-none-any.whl", hash = "sha256:7ecd1343ee12c879d0e7ae74c3eb6d263b023d2929c6d114212eb1fd91057255", size = 272987, upload-time = "2026-07-05T02:59:42.792Z" },
 ]
+
+[[package]]
+name = "rpi-gpio"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/0f/10b524a12b3445af1c607c27b2f5ed122ef55756e29942900e5c950735f2/RPi.GPIO-0.7.1.tar.gz", hash = "sha256:cd61c4b03c37b62bba4a5acfea9862749c33c618e0295e7e90aa4713fb373b70", size = 29090, upload-time = "2022-02-06T15:15:06.022Z" }
 
 [[package]]
 name = "setuptools"
