@@ -8,8 +8,6 @@ class MP3:
         self.client: MPDClient = MPDClient()
         self.client.timeout = 10
         self.client.connect("localhost", CONNECTION_PORT)
-        print(self.get_artists())
-        print(self.client.list("album"))
 
     def toggle_play(self):
         status = self.client.status()
@@ -26,6 +24,16 @@ class MP3:
 
         return artists
 
+    def get_albums(self) -> list[str]:
+        album_dict = self.client.list("album")
+        albums = []
+        for i in album_dict:
+            albums.append(i["album"])
+
+        return albums
+
 
 if __name__ == "__main__":
     mp3 = MP3()
+    print(mp3.get_artists())
+    print(mp3.get_albums())
