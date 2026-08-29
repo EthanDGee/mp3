@@ -3,11 +3,12 @@ from mpd import MPDClient
 from constants import CONNECTION_PORT
 
 
-class MP3:
+class Player:
     def __init__(self):
         self.client: MPDClient = MPDClient()
         self.client.timeout = 10
         self.client.connect("localhost", CONNECTION_PORT)
+        self.client.setvol(50)
 
     def toggle_play(self):
         status = self.client.status()
@@ -32,8 +33,18 @@ class MP3:
 
         return albums
 
+    def play_album(self, album: str, artist: str):
+        self.client.clear()
+        self.client.findadd("album", album, "artist", artist)
+        self.client.play()
+
 
 if __name__ == "__main__":
-    mp3 = MP3()
-    print(mp3.get_artists())
-    print(mp3.get_albums())
+    player = Player()
+    print(player.get_artists())
+    print(player.get_albums())
+
+    player.play_album("In My Mind (Prequel) (Hosted By DJ Drama)", "Pharrell")
+    print(player.client.status())
+    player.client.close()
+    player.client.disconnect()
