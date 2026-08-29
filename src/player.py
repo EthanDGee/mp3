@@ -65,13 +65,21 @@ class Player:
         # Application State
         self.album_index = 0
         self.artist_index = 0
+        self.song_index = 0
+
         self.current_album: int | None = None
+
+        self.playing: bool = False
+
         self.state = State.Playing  # assigned temporarily
         self.switch_modes(State.AlbumSelect)
 
-    def toggle_play(self):
+    def _is_playing_music(self) -> bool:
         status = self.client.status()
-        if status.get("state") == "play":
+        return status.get("state") == "play"
+
+    def toggle_play(self):
+        if self._is_playing_music:
             self.client.pause(1)
         else:
             self.client.play()
@@ -97,8 +105,10 @@ class Player:
 
         if artist == None:
             self.client.findadd("album", album)
+            print(f"Started playing {album}")
         else:
             self.client.findadd("album", album, "artist", artist)
+            print(f"Started playing {album} by {artist}")
         self.client.play()
 
     def render_albums(self):
@@ -114,7 +124,13 @@ class Player:
                 )
 
             if i == self.current_album:
-                self._draw.text((0, y_offset), "- " + album, font=FONT, fill=TEXT_COLOR)
+                selection_indicator = "- " if self._is_playing_music() else "x "
+                self._draw.text(
+                    (0, y_offset),
+                    selection_indicator + album,
+                    font=FONT,
+                    fill=TEXT_COLOR,
+                )
             else:
                 self._draw.text((0, y_offset), album, font=FONT, fill=TEXT_COLOR)
 
@@ -130,14 +146,15 @@ class Player:
             GPIO.remove_event_detect(button.value)
 
         if new_mode == State.AlbumSelect:
-
-            def _decrement(_channel):
+            # Incrementation and decrementing are reversed to account
+            # for album ordering on render_albums() going from 0 down
+            def _move_down(_channel):
                 self.album_index = increment_no_wrap(
                     self.album_index, len(self.albums) - 1
                 )
                 self.render_albums()
 
-            def _increment(_channel):
+            def _move_up(_channel):
                 self.album_index = decrement_no_wrap(self.album_index)
                 self.render_albums()
 
@@ -159,14 +176,14 @@ class Player:
             GPIO.add_event_detect(
                 BUTTONS.Y.value,
                 GPIO.FALLING,
-                callback=_increment,
+                callback=_move_up,
                 bouncetime=BOUNCE_TIME,
             )
 
             GPIO.add_event_detect(
                 BUTTONS.X.value,
                 GPIO.FALLING,
-                callback=_decrement,
+                callback=_move_down,
                 bouncetime=BOUNCE_TIME,
             )
 
