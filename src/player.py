@@ -32,7 +32,7 @@ class Player:
         self.client: MPDClient = MPDClient()
         self.client.timeout = 10
         self.client.connect("localhost", CONNECTION_PORT)
-        self.client.setvol(10)
+        self.client.setvol(1)
 
         # initialize display
         self._disp = ST7789.ST7789(
@@ -79,8 +79,8 @@ class Player:
         return status.get("state") == "play"
 
     def toggle_play(self):
-        if self._is_playing_music:
-            self.client.pause(1)
+        if self._is_playing_music():
+            self.client.pause()
         else:
             self.client.play()
 
@@ -90,6 +90,7 @@ class Player:
         for i in artist_json:
             artists.append(i["artist"])
 
+        artists.sort()
         return artists
 
     def get_albums(self) -> list[str]:
@@ -97,6 +98,7 @@ class Player:
         albums = []
         for i in album_dict:
             albums.append(i["album"])
+        albums.sort()
 
         return albums
 
@@ -201,10 +203,7 @@ class Player:
 
 if __name__ == "__main__":
     player = Player()
-    print(player.get_artists())
-    print(player.get_albums())
 
-    player.play_album("In My Mind (Prequel) (Hosted By DJ Drama)", "Pharrell")
     print(player.client.status())
 
     player.render_albums()

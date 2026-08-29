@@ -1,9 +1,13 @@
 from enum import IntEnum
+from pathlib import Path
 
 from PIL import ImageFont
 
 # Modipy
 CONNECTION_PORT: int = 6600
+
+# Music Library Info
+MUSIC_DIR = Path.home() / "Music"
 
 # Display
 DISP_HEIGHT = 240
