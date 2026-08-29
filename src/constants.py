@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 from PIL import ImageFont
 
 # Modipy
@@ -8,6 +10,17 @@ DISP_HEIGHT = 240
 DISP_ROTATION = 270
 BACK_BG_SLOT = 18
 FRONT_BG_SLOT = 19
+
+
+# Pimoroni
+class BUTTONS(IntEnum):
+    A = 5
+    B = 6
+    X = 16
+    Y = 24
+
+
+BOUNCE_TIME = 250
 
 # Theming
 FONT_SIZE = 20
