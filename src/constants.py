@@ -16,3 +16,4 @@ FONT = ImageFont.truetype(
 )
 BACKGROUND_COLOR = (0, 0, 0)
 TEXT_COLOR = (255, 255, 255)
+HIGHLIGHT_COLOR = (55, 165, 55)

@@ -10,6 +10,7 @@ from constants import (
     FONT,
     FONT_SIZE,
     FRONT_BG_SLOT,
+    HIGHLIGHT_COLOR,
     TEXT_COLOR,
 )
 
@@ -83,6 +84,11 @@ class Player:
 
         for i, album in enumerate(self.albums):
             y_offset = i * FONT_SIZE
+
+            if i == self.album_index:
+                self._draw.rectangle(
+                    (0, y_offset, DISP_HEIGHT, y_offset + FONT_SIZE), HIGHLIGHT_COLOR
+                )
             self._draw.text((0, y_offset), album, font=FONT, fill=TEXT_COLOR)
 
         self._disp.display(self._screen)
