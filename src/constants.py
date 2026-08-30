@@ -5,6 +5,7 @@ from PIL import ImageFont
 
 # Modipy
 CONNECTION_PORT: int = 6600
+VOLUME_INCREMENT = 5
 
 # Music Library Info
 MUSIC_DIR = Path.home() / "Music"

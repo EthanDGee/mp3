@@ -23,6 +23,7 @@ from constants import (
     HIGHLIGHT_COLOR,
     MUSIC_DIR,
     TEXT_COLOR,
+    VOLUME_INCREMENT,
 )
 from utils import decrement_no_wrap, increment_no_wrap
 
@@ -76,8 +77,8 @@ class Player:
 
         self.playing: bool = False
 
-        self.state = State.AlbumSelect  # assigned temporarily
-        self.switch_modes(State.SongView)
+        self.state = State.SongView  # assigned temporarily
+        self.switch_modes(State.AlbumSelect)
 
     def _is_playing_music(self) -> bool:
         status = self.client.status()
@@ -117,6 +118,9 @@ class Player:
             self.client.findadd("album", album, "artist", artist)
             print(f"Started playing {album} by {artist}")
         self.client.play()
+
+        # add a slight delay to avoid race conditions
+        time.sleep(0.2)
 
     def get_song_image_path(self) -> Path | None:
 
@@ -177,6 +181,7 @@ class Player:
         self._disp.display(self._screen)
 
         # display metadata
+        song_info = self.client.currentsong()
         title = song_info.get("title", "Unknown Title")
         artist = song_info.get("artist", "Unknown Artist")
         album = song_info.get("album", "Unknown Album")
@@ -267,16 +272,11 @@ class Player:
             def _play_album(_channel):
                 highlighted_album = self.albums[self.album_index]
 
-                if self.current_album == self.album_index:
-                    self.toggle_play()
-                else:
+                if self.current_album != self.album_index:
                     self.current_album = self.album_index
                     self.play_album(highlighted_album)
 
-                self.render_song()
-
-                # add a slight delay to avoid race conditions
-                time.sleep(0.1)
+                self.switch_modes(State.SongView)
 
             def _toggle_play(_channel):
                 self.toggle_play()
@@ -303,6 +303,53 @@ class Player:
                 bouncetime=BOUNCE_TIME,
             )
 
+            self.render_albums()
+
+        elif new_mode == State.SongView:
+
+            def _back_to_album_select(_channel):
+                self.switch_modes(State.AlbumSelect)
+
+            def _volume_down(_channel):
+                self.client.volume(-VOLUME_INCREMENT)
+
+            def _volume_up(_channel):
+                self.client.volume(VOLUME_INCREMENT)
+
+            def _toggle_play(_channel):
+                self.toggle_play()
+                self.render_song()
+
+            GPIO.add_event_detect(
+                BUTTONS.Y.value,
+                GPIO.FALLING,
+                callback=_back_to_album_select,
+                bouncetime=BOUNCE_TIME,
+            )
+
+            GPIO.add_event_detect(
+                BUTTONS.B.value,
+                GPIO.FALLING,
+                callback=_volume_up,
+                bouncetime=BOUNCE_TIME,
+            )
+
+            GPIO.add_event_detect(
+                BUTTONS.A.value,
+                GPIO.FALLING,
+                callback=_volume_down,
+                bouncetime=BOUNCE_TIME,
+            )
+
+            GPIO.add_event_detect(
+                BUTTONS.X.value,
+                GPIO.FALLING,
+                callback=_toggle_play,
+                bouncetime=BOUNCE_TIME,
+            )
+
+            self.render_song()
+
         self.state = new_mode
 
         # render
@@ -311,14 +358,7 @@ class Player:
 if __name__ == "__main__":
     player = Player()
 
-    print(player.client.status())
-
-    song_info = player.client.currentsong()
-    # player.play_album("In My Mind (Prequel) (Hosted By DJ Drama)", "Pharrell")
-    print(song_info)
-
-    # player.render_albums()
-    player.render_song()
+    player.render_albums()
 
     # button callbacks (see switch_modes) run on their own thread and
     # re-render on press; just block the main thread here until killed.
