@@ -1,5 +1,6 @@
 import re
 import signal
+import time
 import urllib.parse
 from enum import Enum
 from pathlib import Path
@@ -118,20 +119,32 @@ class Player:
         self.client.play()
 
     def get_song_image_path(self) -> Path | None:
-        song_info = self.client.currentsong()
 
-        if "file" not in song_info:
+        print("Getting song image path...")
+        song_info = self.client.currentsong()
+        print(f"Song Info: {song_info}")
+
+        # find album directory using file key first then artist  + album
+        # as fall back
+
+        album_directory = None
+
+        if "file" in song_info:
+            song_file = song_info["file"]
+
+            # trim decorators
+            prefix_len = len("local:track:")
+            song_file = song_file[prefix_len:]
+            song_file = urllib.parse.unquote(song_file)
+
+            album_directory = MUSIC_DIR / Path(song_file).parent
+        elif "artist" in song_info and "album" in song_info:
+            album_directory = MUSIC_DIR / song_info["artist"] / song_info["album"]
+        else:
+            print("Failed to get metadata")
             return None
 
-        song_file = song_info["file"]
-
-        # trim decorators
-        prefix_len = len("local:track:")
-        song_file = song_file[prefix_len:]
-        song_file = urllib.parse.unquote(song_file)
-
-        album_directory = MUSIC_DIR / Path(song_file).parent
-
+        print(f"\nAlbum Directory:{album_directory}")
         # pattern to match all cover images in a file regardless of
         # capitialzion pre/postfix as long as it is a file type readable by
         # PIL
@@ -221,6 +234,9 @@ class Player:
 
                 self.render_song()
 
+                # add a slight delay to avoid race conditions
+                time.sleep(0.1)
+
             def _toggle_play(_channel):
                 self.toggle_play()
                 self.render_albums()
@@ -257,6 +273,7 @@ if __name__ == "__main__":
     print(player.client.status())
 
     song_info = player.client.currentsong()
+    # player.play_album("In My Mind (Prequel) (Hosted By DJ Drama)", "Pharrell")
     print(song_info)
 
     # player.render_albums()
