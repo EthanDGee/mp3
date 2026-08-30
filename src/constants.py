@@ -17,7 +17,7 @@ BACK_BG_SLOT = 18
 FRONT_BG_SLOT = 13
 
 
-# Pimoroni
+# GPIO
 class BUTTONS(IntEnum):
     A = 5
     B = 6
@@ -26,6 +26,8 @@ class BUTTONS(IntEnum):
 
 
 BOUNCE_TIME = 250
+HELD_BUTTON_DURATION = 2000
+
 
 # Theming
 FONT_SIZE = 20

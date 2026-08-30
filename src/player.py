@@ -20,6 +20,7 @@ from constants import (
     FONT,
     FONT_SIZE,
     FRONT_BG_SLOT,
+    HELD_BUTTON_DURATION,
     HIGHLIGHT_COLOR,
     MUSIC_DIR,
     TEXT_COLOR,
@@ -34,8 +35,8 @@ class State(Enum):
 
 
 class Player:
-    def __init__(self):
-        self.client: MPDClient = MPDClient()
+    def __init__(self) -> None:
+        self.client = MPDClient()
         self.client.timeout = 10
         self.client.connect("localhost", CONNECTION_PORT)
         self.client.setvol(1)
@@ -65,15 +66,15 @@ class Player:
         GPIO.setup(button_indexes, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
         # Library Info
-        self.albums: list[str] = self.get_albums()
-        self.artists: list[str] = self.get_artists()
+        self.albums = self.get_albums()
+        self.artists = self.get_artists()
 
         # Application State
         self.album_index = 0
         self.artist_index = 0
         self.song_index = 0
 
-        self.current_album: int | None = None
+        self.current_album = None
 
         self.playing: bool = False
 
@@ -84,7 +85,7 @@ class Player:
         status = self.client.status()
         return status.get("state") == "play"
 
-    def toggle_play(self):
+    def toggle_play(self) -> None:
         if self._is_playing_music():
             self.client.pause()
         else:
@@ -247,112 +248,116 @@ class Player:
 
         self._disp.display(self._screen)
 
-    def switch_modes(self, new_mode: State):
+    def switch_modes(self, new_mode: State) -> None:
 
+        # don't switch if already in the correct mode
         if new_mode == self.state:
             return
 
-        # clear event detects
-        for button in BUTTONS:
-            GPIO.remove_event_detect(button.value)
-
         if new_mode == State.AlbumSelect:
-            # Incrementation and decrementing are reversed to account
-            # for album ordering on render_albums() going from 0 down
-            def _move_down(_channel):
-                self.album_index = increment_no_wrap(
-                    self.album_index, len(self.albums) - 1
-                )
-                self.render_albums()
-
-            def _move_up(_channel):
-                self.album_index = decrement_no_wrap(self.album_index)
-                self.render_albums()
-
-            def _play_album(_channel):
-                highlighted_album = self.albums[self.album_index]
-
-                if self.current_album != self.album_index:
-                    self.current_album = self.album_index
-                    self.play_album(highlighted_album)
-
-                self.switch_modes(State.SongView)
-
-            def _toggle_play(_channel):
-                self.toggle_play()
-                self.render_albums()
-
-            GPIO.add_event_detect(
-                BUTTONS.Y.value,
-                GPIO.FALLING,
-                callback=_move_up,
-                bouncetime=BOUNCE_TIME,
-            )
-
-            GPIO.add_event_detect(
-                BUTTONS.X.value,
-                GPIO.FALLING,
-                callback=_move_down,
-                bouncetime=BOUNCE_TIME,
-            )
-
-            GPIO.add_event_detect(
-                BUTTONS.B.value,
-                GPIO.FALLING,
-                callback=_play_album,
-                bouncetime=BOUNCE_TIME,
-            )
-
+            self._set_album_select_buttons()
             self.render_albums()
 
         elif new_mode == State.SongView:
-
-            def _back_to_album_select(_channel):
-                self.switch_modes(State.AlbumSelect)
-
-            def _volume_down(_channel):
-                self.client.volume(-VOLUME_INCREMENT)
-
-            def _volume_up(_channel):
-                self.client.volume(VOLUME_INCREMENT)
-
-            def _toggle_play(_channel):
-                self.toggle_play()
-                self.render_song()
-
-            GPIO.add_event_detect(
-                BUTTONS.Y.value,
-                GPIO.FALLING,
-                callback=_back_to_album_select,
-                bouncetime=BOUNCE_TIME,
-            )
-
-            GPIO.add_event_detect(
-                BUTTONS.B.value,
-                GPIO.FALLING,
-                callback=_volume_up,
-                bouncetime=BOUNCE_TIME,
-            )
-
-            GPIO.add_event_detect(
-                BUTTONS.A.value,
-                GPIO.FALLING,
-                callback=_volume_down,
-                bouncetime=BOUNCE_TIME,
-            )
-
-            GPIO.add_event_detect(
-                BUTTONS.X.value,
-                GPIO.FALLING,
-                callback=_toggle_play,
-                bouncetime=BOUNCE_TIME,
-            )
-
+            self._set_song_view_buttons()
             self.render_song()
 
         self.state = new_mode
 
-        # render
+    def _clear_button_signals(self) -> None:
+        for button in BUTTONS:
+            GPIO.remove_event_detect(button.value)
+
+    def _set_album_select_buttons(self) -> None:
+        self._clear_button_signals()
+
+        # Incrementation and decrementing are reversed to account
+        # for album ordering on render_albums() going from 0 down
+        def _move_down(_channel):
+            self.album_index = increment_no_wrap(self.album_index, len(self.albums) - 1)
+            self.render_albums()
+
+        def _move_up(_channel):
+            self.album_index = decrement_no_wrap(self.album_index)
+            self.render_albums()
+
+        def _play_album(_channel):
+            highlighted_album = self.albums[self.album_index]
+
+            if self.current_album != self.album_index:
+                self.current_album = self.album_index
+                self.play_album(highlighted_album)
+
+            self.switch_modes(State.SongView)
+
+        def _toggle_play(_channel):
+            self.toggle_play()
+            self.render_albums()
+
+        GPIO.add_event_detect(
+            BUTTONS.Y.value,
+            GPIO.FALLING,
+            callback=_move_up,
+            bouncetime=BOUNCE_TIME,
+        )
+
+        GPIO.add_event_detect(
+            BUTTONS.X.value,
+            GPIO.FALLING,
+            callback=_move_down,
+            bouncetime=BOUNCE_TIME,
+        )
+
+        GPIO.add_event_detect(
+            BUTTONS.B.value,
+            GPIO.FALLING,
+            callback=_play_album,
+            bouncetime=BOUNCE_TIME,
+        )
+
+    def _set_song_view_buttons(self) -> None:
+        print(HELD_BUTTON_DURATION)
+
+        def _back_to_album_select(_channel):
+            self.switch_modes(State.AlbumSelect)
+
+        def _volume_down(_channel):
+            self.client.volume(-VOLUME_INCREMENT)
+
+        def _volume_up(_channel):
+            self.client.volume(VOLUME_INCREMENT)
+
+        def _toggle_play(_channel):
+            self.toggle_play()
+            self.render_song()
+
+        GPIO.add_event_detect(
+            BUTTONS.Y.value,
+            GPIO.FALLING,
+            callback=_back_to_album_select,
+            bouncetime=BOUNCE_TIME,
+        )
+
+        GPIO.add_event_detect(
+            BUTTONS.B.value,
+            GPIO.FALLING,
+            callback=_volume_up,
+            bouncetime=BOUNCE_TIME,
+        )
+
+        GPIO.add_event_detect(
+            BUTTONS.A.value,
+            GPIO.FALLING,
+            callback=_volume_down,
+            bouncetime=BOUNCE_TIME,
+        )
+
+        GPIO.add_event_detect(
+            BUTTONS.X.value,
+            GPIO.FALLING,
+            callback=_toggle_play,
+            bouncetime=BOUNCE_TIME,
+        )
 
 
 if __name__ == "__main__":
