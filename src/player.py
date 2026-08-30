@@ -1,5 +1,8 @@
+import re
 import signal
+import urllib.parse
 from enum import Enum
+from pathlib import Path
 
 import st7789 as ST7789
 from mpd import MPDClient
@@ -17,6 +20,7 @@ from constants import (
     FONT_SIZE,
     FRONT_BG_SLOT,
     HIGHLIGHT_COLOR,
+    MUSIC_DIR,
     TEXT_COLOR,
 )
 from utils import decrement_no_wrap, increment_no_wrap
@@ -24,7 +28,7 @@ from utils import decrement_no_wrap, increment_no_wrap
 
 class State(Enum):
     AlbumSelect = 0
-    Playing = 1
+    SongView = 1
 
 
 class Player:
@@ -71,8 +75,8 @@ class Player:
 
         self.playing: bool = False
 
-        self.state = State.Playing  # assigned temporarily
-        self.switch_modes(State.AlbumSelect)
+        self.state = State.AlbumSelect  # assigned temporarily
+        self.switch_modes(State.SongView)
 
     def _is_playing_music(self) -> bool:
         status = self.client.status()
@@ -112,6 +116,52 @@ class Player:
             self.client.findadd("album", album, "artist", artist)
             print(f"Started playing {album} by {artist}")
         self.client.play()
+
+    def get_song_image_path(self) -> Path | None:
+        song_info = self.client.currentsong()
+
+        if "file" not in song_info:
+            return None
+
+        song_file = song_info["file"]
+
+        # trim decorators
+        prefix_len = len("local:track:")
+        song_file = song_file[prefix_len:]
+        song_file = urllib.parse.unquote(song_file)
+
+        album_directory = MUSIC_DIR / Path(song_file).parent
+
+        # pattern to match all cover images in a file regardless of
+        # capitialzion pre/postfix as long as it is a file type readable by
+        # PIL
+        cover_pattern = re.compile(
+            r".*cover.*\.(apng|avif|blp|bmp|dib|bpg|dcx|dds|eps|fit|fits|flc|fli|gif|grib|icns|ico|cur|im|jpe|jpeg|jpg|j2c|j2k|jpf|jp2|jpx|jxl|mda|mpo|msp|pcx|pdf|pam|pbm|pgm|pfm|png|ppm|psd|qoi|ras|rgb|rgba|sgi|tga|tpic|tif|tiff|webp|wmf|emf|xbm|xpm)$",
+            re.IGNORECASE,
+        )
+
+        # loop through file names and try
+        if album_directory.exists() and album_directory.is_dir():
+            for file in album_directory.iterdir():
+                if file.is_file() and cover_pattern.match(file.name):
+                    return file
+
+        return None
+
+    def render_song(self):
+        # if possible render image as background
+        image_path = self.get_song_image_path()
+
+        if image_path is None:
+            print("Drawing stale background")
+            self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
+        else:
+            print("Drawing album art")
+            album_art = Image.open(image_path)
+            album_art = album_art.resize((DISP_HEIGHT, DISP_HEIGHT))
+            self._screen.paste(album_art, (0, 0))
+
+        self._disp.display(self._screen)
 
     def render_albums(self):
         # background
@@ -169,7 +219,7 @@ class Player:
                     self.current_album = self.album_index
                     self.play_album(highlighted_album)
 
-                self.render_albums()
+                self.render_song()
 
             def _toggle_play(_channel):
                 self.toggle_play()
@@ -206,7 +256,11 @@ if __name__ == "__main__":
 
     print(player.client.status())
 
-    player.render_albums()
+    song_info = player.client.currentsong()
+    print(song_info)
+
+    # player.render_albums()
+    player.render_song()
 
     # button callbacks (see switch_modes) run on their own thread and
     # re-render on press; just block the main thread here until killed.
