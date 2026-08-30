@@ -176,6 +176,47 @@ class Player:
 
         self._disp.display(self._screen)
 
+        # display metadata
+        title = song_info.get("title", "Unknown Title")
+        artist = song_info.get("artist", "Unknown Artist")
+        album = song_info.get("album", "Unknown Album")
+
+        center_x = DISP_HEIGHT // 2
+
+        # Draw metadata info if the music is paused
+        if not self._is_playing_music():
+            self._draw.text(
+                (center_x, int(DISP_HEIGHT * 0.2)),
+                title,
+                font=FONT,
+                fill="white",
+                stroke_width=2,
+                stroke_fill="black",
+                anchor="mt",
+            )
+
+            self._draw.text(
+                (center_x, int(DISP_HEIGHT * 0.4)),
+                artist,
+                font=FONT,
+                fill="white",
+                stroke_width=2,
+                stroke_fill="black",
+                anchor="mt",
+            )
+
+            self._draw.text(
+                (center_x, int(DISP_HEIGHT * 0.6)),
+                album,
+                font=FONT,
+                fill="white",
+                stroke_width=2,
+                stroke_fill="black",
+                anchor="mt",
+            )
+
+        self._disp.display(self._screen)
+
     def render_albums(self):
         # background
         self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
