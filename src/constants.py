@@ -5,6 +5,7 @@ from PIL import ImageFont
 
 # Modipy
 CONNECTION_PORT: int = 6600
+CONNECTION_TIMEOUT: int = 10
 VOLUME_INCREMENT = 5
 
 # Music Library Info
@@ -26,7 +27,7 @@ class BUTTONS(IntEnum):
 
 
 BOUNCE_TIME = 250
-HELD_BUTTON_DURATION = 2000
+HELD_BUTTON_DURATION = 1000
 
 
 # Theming

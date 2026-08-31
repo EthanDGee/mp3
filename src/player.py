@@ -15,6 +15,7 @@ from constants import (
     BOUNCE_TIME,
     BUTTONS,
     CONNECTION_PORT,
+    CONNECTION_TIMEOUT,
     DISP_HEIGHT,
     DISP_ROTATION,
     FONT,
@@ -37,7 +38,7 @@ class State(Enum):
 class Player:
     def __init__(self) -> None:
         self.client = MPDClient()
-        self.client.timeout = 10
+        self.client.timeout = CONNECTION_TIMEOUT
         self.client.connect("localhost", CONNECTION_PORT)
         self.client.setvol(1)
 
@@ -65,6 +66,8 @@ class Player:
         button_indexes = [button.value for button in BUTTONS]
         GPIO.setup(button_indexes, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+        self._clear_button_signals()
+
         # Library Info
         self.albums = self.get_albums()
         self.artists = self.get_artists()
@@ -81,17 +84,28 @@ class Player:
         self.state = State.SongView  # assigned temporarily
         self.switch_modes(State.AlbumSelect)
 
+    def ensure_connected(self) -> None:
+        # checks if the client is connected, if not reconnect
+        try:
+            self.client.ping()
+        except (OSError, ConnectionError):
+            print("Client not connected. Reconnecting")
+            self.client.connect("localhost", 6600)
+
     def _is_playing_music(self) -> bool:
+        self.ensure_connected()
         status = self.client.status()
         return status.get("state") == "play"
 
     def toggle_play(self) -> None:
+        self.ensure_connected()
         if self._is_playing_music():
             self.client.pause()
         else:
             self.client.play()
 
     def get_artists(self) -> list[str]:
+        self.ensure_connected()
         artist_json = self.client.list("artist")
         artists = []
         for i in artist_json:
@@ -101,6 +115,7 @@ class Player:
         return artists
 
     def get_albums(self) -> list[str]:
+        self.ensure_connected()
         album_dict = self.client.list("album")
         albums = []
         for i in album_dict:
@@ -110,6 +125,7 @@ class Player:
         return albums
 
     def play_album(self, album: str, artist: str | None = None):
+        self.ensure_connected()
         self.client.clear()
 
         if artist == None:
@@ -124,6 +140,7 @@ class Player:
         time.sleep(0.2)
 
     def get_song_image_path(self) -> Path | None:
+        self.ensure_connected()
 
         print("Getting song image path...")
         song_info = self.client.currentsong()
@@ -182,6 +199,7 @@ class Player:
         self._disp.display(self._screen)
 
         # display metadata
+        self.ensure_connected()
         song_info = self.client.currentsong()
         title = song_info.get("title", "Unknown Title")
         artist = song_info.get("artist", "Unknown Artist")
@@ -316,16 +334,46 @@ class Player:
         )
 
     def _set_song_view_buttons(self) -> None:
-        print(HELD_BUTTON_DURATION)
+        self._clear_button_signals()
 
         def _back_to_album_select(_channel):
             self.switch_modes(State.AlbumSelect)
 
-        def _volume_down(_channel):
-            self.client.volume(-VOLUME_INCREMENT)
+        def _volume_up_or_next(channel):
+            start_time = time.time()
 
-        def _volume_up(_channel):
+            while GPIO.input(channel) == GPIO.LOW:
+                # sleep to prevent 100% cpu usage
+                time.sleep(0.05)
+                if time.time() - start_time >= HELD_BUTTON_DURATION:
+                    # long press action
+                    self.client.next()
+                    self.render_song()
+
+                    # prevent double firing
+                    while GPIO.input(channel) == GPIO.LOW:
+                        time.sleep(0.05)
+                    return
+            # short press
             self.client.volume(VOLUME_INCREMENT)
+
+        def _volume_down_or_prev(channel):
+            start_time = time.time()
+
+            while GPIO.input(channel) == GPIO.LOW:
+                # sleep to prevent 100% cpu usage
+                time.sleep(0.05)
+                if time.time() - start_time >= HELD_BUTTON_DURATION:
+                    # long press action
+                    self.client.prev()
+                    self.render_song()
+
+                    # prevent double firing
+                    while GPIO.input(channel) == GPIO.LOW:
+                        time.sleep(0.05)
+                    return
+            # short press
+            self.client.volume(-VOLUME_INCREMENT)
 
         def _toggle_play(_channel):
             self.toggle_play()
@@ -341,14 +389,14 @@ class Player:
         GPIO.add_event_detect(
             BUTTONS.B.value,
             GPIO.FALLING,
-            callback=_volume_up,
+            callback=_volume_up_or_next,
             bouncetime=BOUNCE_TIME,
         )
 
         GPIO.add_event_detect(
             BUTTONS.A.value,
             GPIO.FALLING,
-            callback=_volume_down,
+            callback=_volume_down_or_prev,
             bouncetime=BOUNCE_TIME,
         )
 
