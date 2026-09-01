@@ -6,9 +6,9 @@ from enum import Enum
 from pathlib import Path
 
 import st7789 as ST7789
+from gpiozero import Button
 from mpd import MPDClient
 from PIL import Image, ImageDraw
-from RPi import GPIO
 
 from constants import (
     BACKGROUND_COLOR,
@@ -60,13 +60,31 @@ class Player:
         self._draw = ImageDraw.Draw(self._screen)
         self._disp.begin()
 
-        # initialize gpio
-        GPIO.setmode(GPIO.BCM)
-
-        button_indexes = [button.value for button in BUTTONS]
-        GPIO.setup(button_indexes, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-        self._clear_button_signals()
+        # initialize buttons
+        self.a_button = Button(
+            BUTTONS.A.value,
+            pull_up=True,
+            bounce_time=BOUNCE_TIME,
+            hold_time=HELD_BUTTON_DURATION,
+        )
+        self.b_button = Button(
+            BUTTONS.B.value,
+            pull_up=True,
+            bounce_time=BOUNCE_TIME,
+            hold_time=HELD_BUTTON_DURATION,
+        )
+        self.x_button = Button(
+            BUTTONS.X.value,
+            pull_up=True,
+            bounce_time=BOUNCE_TIME,
+            hold_time=HELD_BUTTON_DURATION,
+        )
+        self.y_button = Button(
+            BUTTONS.Y.value,
+            pull_up=True,
+            bounce_time=BOUNCE_TIME,
+            hold_time=HELD_BUTTON_DURATION,
+        )
 
         # Library Info
         self.albums = self.get_albums()
@@ -282,24 +300,60 @@ class Player:
 
         self.state = new_mode
 
-    def _clear_button_signals(self) -> None:
-        for button in BUTTONS:
-            GPIO.remove_event_detect(button.value)
+    def _unbind_buttons(self) -> None:
+
+        def _unbind_button(button: Button) -> None:
+            button.when_pressed = None
+            button.when_released = None
+            button.when_held = None
+
+        _unbind_button(self.a_button)
+        _unbind_button(self.b_button)
+        _unbind_button(self.x_button)
+        _unbind_button(self.y_button)
+
+    # python functions are first class but have no type int typing so this meets the standards
+
+    def _bind_button(self, button, short_press, long_press=None) -> None:
+        # to avoid firing the when released action after a button has been held
+        # we track a boolean field that is linked to the button and toggled by
+        # a when_held trigger. This prevents the short_press from being triggered
+        # after the held button is released.
+
+        # (Tracked via a local dictionary to bypass gpiozero's strict attributes)
+        state = {"was_held": False}
+
+        def handle_long_press():
+            state["was_held"] = True
+            if long_press:
+                long_press()
+
+        def handle_short_press():
+            # toggle was_held after the button was released
+            if state["was_held"]:
+                state["was_held"] = False
+            else:
+                # It was a short press.
+                if short_press:
+                    short_press()
+
+        button.when_held = handle_long_press if long_press else None
+        button.when_released = handle_short_press
 
     def _set_album_select_buttons(self) -> None:
-        self._clear_button_signals()
+        self._unbind_buttons()
 
         # Incrementation and decrementing are reversed to account
         # for album ordering on render_albums() going from 0 down
-        def _move_down(_channel):
+        def _move_down():
             self.album_index = increment_no_wrap(self.album_index, len(self.albums) - 1)
             self.render_albums()
 
-        def _move_up(_channel):
+        def _move_up():
             self.album_index = decrement_no_wrap(self.album_index)
             self.render_albums()
 
-        def _play_album(_channel):
+        def _play_album():
             highlighted_album = self.albums[self.album_index]
 
             if self.current_album != self.album_index:
@@ -308,104 +362,43 @@ class Player:
 
             self.switch_modes(State.SongView)
 
-        def _toggle_play(_channel):
+        def _toggle_play():
             self.toggle_play()
             self.render_albums()
 
-        GPIO.add_event_detect(
-            BUTTONS.Y.value,
-            GPIO.FALLING,
-            callback=_move_up,
-            bouncetime=BOUNCE_TIME,
-        )
-
-        GPIO.add_event_detect(
-            BUTTONS.X.value,
-            GPIO.FALLING,
-            callback=_move_down,
-            bouncetime=BOUNCE_TIME,
-        )
-
-        GPIO.add_event_detect(
-            BUTTONS.B.value,
-            GPIO.FALLING,
-            callback=_play_album,
-            bouncetime=BOUNCE_TIME,
-        )
+        self._bind_button(self.y_button, _move_up, None)
+        self._bind_button(self.x_button, _move_down, None)
+        self._bind_button(self.b_button, _play_album, None)
+        self._bind_button(self.a_button, _toggle_play, None)
 
     def _set_song_view_buttons(self) -> None:
-        self._clear_button_signals()
+        self._unbind_buttons()
 
-        def _back_to_album_select(_channel):
+        def _back_to_album_select():
             self.switch_modes(State.AlbumSelect)
 
-        def _volume_up_or_next(channel):
-            start_time = time.time()
-
-            while GPIO.input(channel) == GPIO.LOW:
-                # sleep to prevent 100% cpu usage
-                time.sleep(0.05)
-                if time.time() - start_time >= HELD_BUTTON_DURATION:
-                    # long press action
-                    self.client.next()
-                    self.render_song()
-
-                    # prevent double firing
-                    while GPIO.input(channel) == GPIO.LOW:
-                        time.sleep(0.05)
-                    return
-            # short press
+        def _volume_up():
             self.client.volume(VOLUME_INCREMENT)
 
-        def _volume_down_or_prev(channel):
-            start_time = time.time()
+        def _next_song():
+            self.client.next()
+            self.render_song()
 
-            while GPIO.input(channel) == GPIO.LOW:
-                # sleep to prevent 100% cpu usage
-                time.sleep(0.05)
-                if time.time() - start_time >= HELD_BUTTON_DURATION:
-                    # long press action
-                    self.client.prev()
-                    self.render_song()
-
-                    # prevent double firing
-                    while GPIO.input(channel) == GPIO.LOW:
-                        time.sleep(0.05)
-                    return
-            # short press
+        def _volume_down():
             self.client.volume(-VOLUME_INCREMENT)
 
-        def _toggle_play(_channel):
+        def _prev_song():
+            self.client.prev()
+            self.render_song()
+
+        def _toggle_play():
             self.toggle_play()
             self.render_song()
 
-        GPIO.add_event_detect(
-            BUTTONS.Y.value,
-            GPIO.FALLING,
-            callback=_back_to_album_select,
-            bouncetime=BOUNCE_TIME,
-        )
-
-        GPIO.add_event_detect(
-            BUTTONS.B.value,
-            GPIO.FALLING,
-            callback=_volume_up_or_next,
-            bouncetime=BOUNCE_TIME,
-        )
-
-        GPIO.add_event_detect(
-            BUTTONS.A.value,
-            GPIO.FALLING,
-            callback=_volume_down_or_prev,
-            bouncetime=BOUNCE_TIME,
-        )
-
-        GPIO.add_event_detect(
-            BUTTONS.X.value,
-            GPIO.FALLING,
-            callback=_toggle_play,
-            bouncetime=BOUNCE_TIME,
-        )
+        self._bind_button(self.y_button, _back_to_album_select)
+        self._bind_button(self.b_button, _volume_up, _next_song)
+        self._bind_button(self.a_button, _volume_down, _prev_song)
+        self._bind_button(self.x_button, _toggle_play)
 
 
 if __name__ == "__main__":
