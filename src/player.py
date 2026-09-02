@@ -102,7 +102,7 @@ class Player:
         self.state = State.SongView  # assigned temporarily
         self.switch_modes(State.AlbumSelect)
 
-    def ensure_connected(self) -> None:
+    def _ensure_connected(self) -> None:
         # checks if the client is connected, if not reconnect
         try:
             self.client.ping()
@@ -111,19 +111,19 @@ class Player:
             self.client.connect("localhost", 6600)
 
     def _is_playing_music(self) -> bool:
-        self.ensure_connected()
+        self._ensure_connected()
         status = self.client.status()
         return status.get("state") == "play"
 
     def toggle_play(self) -> None:
-        self.ensure_connected()
+        self._ensure_connected()
         if self._is_playing_music():
             self.client.pause()
         else:
             self.client.play()
 
     def get_artists(self) -> list[str]:
-        self.ensure_connected()
+        self._ensure_connected()
         artist_json = self.client.list("artist")
         artists = []
         for i in artist_json:
@@ -133,7 +133,7 @@ class Player:
         return artists
 
     def get_albums(self) -> list[str]:
-        self.ensure_connected()
+        self._ensure_connected()
         album_dict = self.client.list("album")
         albums = []
         for i in album_dict:
@@ -143,7 +143,7 @@ class Player:
         return albums
 
     def play_album(self, album: str, artist: str | None = None):
-        self.ensure_connected()
+        self._ensure_connected()
         self.client.clear()
 
         if artist == None:
@@ -157,8 +157,8 @@ class Player:
         # add a slight delay to avoid race conditions
         time.sleep(0.2)
 
-    def get_song_image_path(self) -> Path | None:
-        self.ensure_connected()
+    def _get_song_image_path(self) -> Path | None:
+        self._ensure_connected()
 
         print("Getting song image path...")
         song_info = self.client.currentsong()
@@ -203,7 +203,7 @@ class Player:
 
     def render_song(self):
         # if possible render image as background
-        image_path = self.get_song_image_path()
+        image_path = self._get_song_image_path()
 
         if image_path is None:
             print("Drawing stale background")
@@ -217,7 +217,7 @@ class Player:
         self._disp.display(self._screen)
 
         # display metadata
-        self.ensure_connected()
+        self._ensure_connected()
         song_info = self.client.currentsong()
         title = song_info.get("title", "Unknown Title")
         artist = song_info.get("artist", "Unknown Artist")
