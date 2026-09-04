@@ -1,7 +1,7 @@
 import re
-import signal
 import time
 import urllib.parse
+from copy import deepcopy
 from enum import Enum
 from pathlib import Path
 
@@ -24,6 +24,7 @@ from constants import (
     HELD_BUTTON_DURATION,
     HIGHLIGHT_COLOR,
     MUSIC_DIR,
+    SCREEN_INACTIVITY_THRESHOLD,
     TEXT_COLOR,
     VOLUME_INCREMENT,
 )
@@ -58,6 +59,8 @@ class Player:
             "RGB", (DISP_HEIGHT, DISP_HEIGHT), color=BACKGROUND_COLOR
         )
         self._draw = ImageDraw.Draw(self._screen)
+        # previous screen to resurrect screen after timeout
+        self._previous_screen = deepcopy(self._screen)
         self._disp.begin()
 
         # initialize buttons
@@ -86,6 +89,10 @@ class Player:
             hold_time=HELD_BUTTON_DURATION,
         )
 
+        # Used to trigger screen turn off after inactivity
+        self.last_button_press = time.time()
+        self.screen_is_off = False
+
         # Library Info
         self.albums = self.get_albums()
         self.artists = self.get_artists()
@@ -101,6 +108,36 @@ class Player:
 
         self.state = State.SongView  # assigned temporarily
         self.switch_modes(State.AlbumSelect)
+
+    def _reset_screen_timeout(self) -> None:
+        self.last_button_press = time.time()
+
+        # If the screen was off, wake it up by re-rendering the current state
+        if self.screen_is_off:
+            if self.state == State.AlbumSelect:
+                self.render_albums()
+            elif self.state == State.SongView:
+                self.render_song()
+
+    def _turn_screen(self) -> None:
+        self._previous_screen.paste(self._screen, (0, 0))
+        self._disp.display(self._screen)
+        self._disp.set_backlight(1)
+        self.screen_is_off = False
+
+    def _turn_off_screen(self) -> None:
+        # Don't do anything if it's already off
+        if self.screen_is_off:
+            return
+
+        self._disp.set_backlight(0)
+        # save the screen to a previous screen back up and draw an all black background to prevent burn in.
+        self._previous_screen.paste(self._screen, (0, 0))
+        BLACK = (0, 0, 0)
+        self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BLACK)
+        self._disp.display(self._screen)
+
+        self.screen_is_off = True
 
     def _ensure_connected(self) -> None:
         # checks if the client is connected, if not reconnect
@@ -202,6 +239,8 @@ class Player:
         return None
 
     def render_song(self):
+        self.screen_is_off = False
+
         # if possible render image as background
         image_path = self._get_song_image_path()
 
@@ -257,9 +296,12 @@ class Player:
                 anchor="mt",
             )
 
+        self._disp.set_backlight(1)
         self._disp.display(self._screen)
 
     def render_albums(self):
+        self.screen_is_off = False
+
         # background
         self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
 
@@ -283,9 +325,9 @@ class Player:
                 self._draw.text((0, y_offset), album, font=FONT, fill=TEXT_COLOR)
 
         self._disp.display(self._screen)
+        self._disp.set_backlight(1)
 
     def switch_modes(self, new_mode: State) -> None:
-
         # don't switch if already in the correct mode
         if new_mode == self.state:
             return
@@ -301,11 +343,11 @@ class Player:
         self.state = new_mode
 
     def _unbind_buttons(self) -> None:
-
+        # at base all buttons should simply reset the screen timeout
         def _unbind_button(button: Button) -> None:
-            button.when_pressed = None
+            button.when_pressed = self._reset_screen_timeout
             button.when_released = None
-            button.when_held = None
+            button.when_held = self._reset_screen_timeout
 
         _unbind_button(self.a_button)
         _unbind_button(self.b_button)
@@ -346,14 +388,17 @@ class Player:
         # Incrementation and decrementing are reversed to account
         # for album ordering on render_albums() going from 0 down
         def _move_down():
+            self._reset_screen_timeout()
             self.album_index = increment_no_wrap(self.album_index, len(self.albums) - 1)
             self.render_albums()
 
         def _move_up():
+            self._reset_screen_timeout()
             self.album_index = decrement_no_wrap(self.album_index)
             self.render_albums()
 
         def _play_album():
+            self._reset_screen_timeout()
             highlighted_album = self.albums[self.album_index]
 
             if self.current_album != self.album_index:
@@ -363,6 +408,7 @@ class Player:
             self.switch_modes(State.SongView)
 
         def _toggle_play():
+            self._reset_screen_timeout()
             self.toggle_play()
             self.render_albums()
 
@@ -375,23 +421,29 @@ class Player:
         self._unbind_buttons()
 
         def _back_to_album_select():
+            self._reset_screen_timeout()
             self.switch_modes(State.AlbumSelect)
 
         def _volume_up():
+            self._reset_screen_timeout()
             self.client.volume(VOLUME_INCREMENT)
 
         def _next_song():
+            self._reset_screen_timeout()
             self.client.next()
             self.render_song()
 
         def _volume_down():
+            self._reset_screen_timeout()
             self.client.volume(-VOLUME_INCREMENT)
 
         def _prev_song():
+            self._reset_screen_timeout()
             self.client.prev()
             self.render_song()
 
         def _toggle_play():
+            self._reset_screen_timeout()
             self.toggle_play()
             self.render_song()
 
@@ -406,9 +458,15 @@ if __name__ == "__main__":
 
     player.render_albums()
 
-    # button callbacks (see switch_modes) run on their own thread and
-    # re-render on press; just block the main thread here until killed.
-    signal.pause()
+    try:
+        # Check every second if the screen should be turned off due to inactivity
+        while True:
+            time.sleep(0.10)
+            if time.time() - player.last_button_press > SCREEN_INACTIVITY_THRESHOLD:
+                player._turn_off_screen()
 
-    player.client.close()
-    player.client.disconnect()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        player.client.close()
+        player.client.disconnect()
