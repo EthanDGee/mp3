@@ -7,6 +7,7 @@ from pathlib import Path
 
 import st7789 as ST7789
 from gpiozero import Button
+from mpd import ConnectionError as MPDConnectionError
 from mpd import MPDClient
 from PIL import Image, ImageDraw
 
@@ -149,9 +150,16 @@ class Player:
         # checks if the client is connected, if not reconnect
         try:
             self.client.ping()
-        except (OSError, ConnectionError):
+        except (OSError, MPDConnectionError):
             print("Client not connected. Reconnecting")
-            self.client.connect("localhost", 6600)
+
+            # Safely clear the stale internal socket state before reconnecting
+            try:
+                self.client.disconnect()
+            except (OSError, MPDConnectionError):
+                pass
+
+            self.client.connect("localhost", CONNECTION_PORT)
 
     def _is_playing_music(self) -> bool:
         self._ensure_connected()
