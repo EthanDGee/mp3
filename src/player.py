@@ -41,7 +41,13 @@ class Player:
         self.client = MPDClient()
         self.client.timeout = CONNECTION_TIMEOUT
         self.client.connect("localhost", CONNECTION_PORT)
+
+        # set sensible defaults for album play
         self.client.setvol(1)
+        self.client.repeat(1)
+        self.client.random(0)
+        self.client.consume(0)
+        self.client.single(0)
 
         # initialize display
         self._disp = ST7789.ST7789(
