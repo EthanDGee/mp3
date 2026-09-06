@@ -319,8 +319,19 @@ class Player:
         # background
         self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
 
-        for i, album in enumerate(self.albums):
-            y_offset = i * FONT_SIZE
+        # set bounds for what albums will be rendered to enable scrolling
+        # to make it easy to see if there are albums that are above the current render 2 albums above the current album.
+
+        ALBUM_OFFSET = 2
+        ALBUM_COUNT = int(DISP_HEIGHT / FONT_SIZE) + 1
+        first_album = max(self.album_index - ALBUM_OFFSET, 0)
+        last_album = min(self.album_index + ALBUM_COUNT, len(self.albums))
+
+        y_offset = -FONT_SIZE
+
+        for i in range(first_album, last_album):
+            album = self.albums[i]
+            y_offset += FONT_SIZE
 
             if i == self.album_index:
                 self._draw.rectangle(
