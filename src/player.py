@@ -199,10 +199,8 @@ class Player:
 
         if artist == None:
             self.client.findadd("album", album)
-            print(f"Started playing {album}")
         else:
             self.client.findadd("album", album, "artist", artist)
-            print(f"Started playing {album} by {artist}")
         self.client.play()
 
         # add a slight delay to avoid race conditions
@@ -211,9 +209,7 @@ class Player:
     def _get_song_image_path(self) -> Path | None:
         self._ensure_connected()
 
-        print("Getting song image path...")
         song_info = self.client.currentsong()
-        print(f"Song Info: {song_info}")
 
         # find album directory using file key first then artist  + album
         # as fall back
@@ -232,10 +228,9 @@ class Player:
         elif "artist" in song_info and "album" in song_info:
             album_directory = MUSIC_DIR / song_info["artist"] / song_info["album"]
         else:
-            print("Failed to get metadata")
+            print("Failed to get metadata for song image path")
             return None
 
-        print(f"\nAlbum Directory:{album_directory}")
         # pattern to match all cover images in a file regardless of
         # file name as long as it is a file type readable by
         # PIL
@@ -252,34 +247,30 @@ class Player:
 
         return None
 
-    def render_song(self):
+    def render_song(self, show_song_info: bool = False):
         self.screen_is_off = False
 
         # if possible render image as background
         image_path = self._get_song_image_path()
 
         if image_path is None:
-            print("Drawing stale background")
+            print("Failed to get album art drawing stale background")
             self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
         else:
-            print("Drawing album art")
             album_art = Image.open(image_path)
             album_art = album_art.resize((DISP_HEIGHT, DISP_HEIGHT))
             self._screen.paste(album_art, (0, 0))
 
-        self._disp.display(self._screen)
+        if show_song_info:
+            # display metadata
+            self._ensure_connected()
+            song_info = self.client.currentsong()
+            title = song_info.get("title", "Unknown Title")
+            artist = song_info.get("artist", "Unknown Artist")
+            album = song_info.get("album", "Unknown Album")
 
-        # display metadata
-        self._ensure_connected()
-        song_info = self.client.currentsong()
-        title = song_info.get("title", "Unknown Title")
-        artist = song_info.get("artist", "Unknown Artist")
-        album = song_info.get("album", "Unknown Album")
+            center_x = DISP_HEIGHT // 2
 
-        center_x = DISP_HEIGHT // 2
-
-        # Draw metadata info if the music is paused
-        if not self._is_playing_music():
             self._draw.text(
                 (center_x, int(DISP_HEIGHT * 0.2)),
                 title,
@@ -470,7 +461,9 @@ class Player:
         def _toggle_play():
             self._reset_screen_timeout()
             self.toggle_play()
-            self.render_song()
+            show_text = not self._is_playing_music()
+
+            self.render_song(show_text)
 
         self._bind_button(self.y_button, _back_to_album_select)
         self._bind_button(self.b_button, _volume_up, _next_song)
