@@ -1,6 +1,7 @@
 import re
 import time
 import urllib.parse
+from collections.abc import Callable
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
@@ -304,7 +305,9 @@ class Player:
         self._disp.set_backlight(1)
         self._disp.display(self._screen)
 
-    def render_albums(self):
+    def render_list(
+        self, items: list[str], highlighted_index: int, formatter: Callable | None
+    ):
         self.screen_is_off = False
 
         # background
@@ -313,35 +316,37 @@ class Player:
         # set bounds for what albums will be rendered to enable scrolling
         # to make it easy to see if there are albums that are above the current render 2 albums above the current album.
 
-        ALBUM_OFFSET = 2
-        ALBUM_COUNT = int(DISP_HEIGHT / FONT_SIZE) + 1
-        first_album = max(self.album_index - ALBUM_OFFSET, 0)
-        last_album = min(self.album_index + ALBUM_COUNT, len(self.albums))
+        SELECTION_OFFSET = 2
+        RENDERED_COUNT = int(DISP_HEIGHT / FONT_SIZE) + 1
+        first_item = max(highlighted_index - SELECTION_OFFSET, 0)
+        last_item = min(highlighted_index + RENDERED_COUNT, len(items))
 
         y_offset = -FONT_SIZE
 
-        for i in range(first_album, last_album):
-            album = self.albums[i]
+        for i in range(first_item, last_item):
+            item = items[i]
             y_offset += FONT_SIZE
 
-            if i == self.album_index:
+            if i == highlighted_index:
                 self._draw.rectangle(
                     (0, y_offset, DISP_HEIGHT, y_offset + FONT_SIZE), HIGHLIGHT_COLOR
                 )
 
-            if i == self.current_album:
-                selection_indicator = "- " if self._is_playing_music() else "x "
-                self._draw.text(
-                    (0, y_offset),
-                    selection_indicator + album,
-                    font=FONT,
-                    fill=TEXT_COLOR,
-                )
-            else:
-                self._draw.text((0, y_offset), album, font=FONT, fill=TEXT_COLOR)
+            text = formatter(item) if formatter is not None else item
+
+            self._draw.text((0, y_offset), text, font=FONT, fill=TEXT_COLOR)
 
         self._disp.display(self._screen)
         self._disp.set_backlight(1)
+
+    def render_albums(self):
+        def format_album_item(album_title) -> str:
+            if album_title == self.current_album:
+                selection_indicator = "+ " if self._is_playing_music() else "- "
+                return selection_indicator + album_title
+            return album_title
+
+        self.render_list(self.albums, self.album_index, format_album_item)
 
     def switch_modes(self, new_mode: State) -> None:
         # don't switch if already in the correct mode
@@ -417,8 +422,8 @@ class Player:
             self._reset_screen_timeout()
             highlighted_album = self.albums[self.album_index]
 
-            if self.current_album != self.album_index:
-                self.current_album = self.album_index
+            if self.current_album != highlighted_album:
+                self.current_album = highlighted_album
                 self.play_album(highlighted_album)
 
             self.switch_modes(State.SongView)
@@ -473,8 +478,6 @@ class Player:
 
 if __name__ == "__main__":
     player = Player()
-
-    player.render_albums()
 
     try:
         # Check every second if the screen should be turned off due to inactivity
