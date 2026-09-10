@@ -35,7 +35,8 @@ from utils import decrement_no_wrap, increment_no_wrap
 
 class State(Enum):
     AlbumSelect = 0
-    SongView = 1
+    ArtistSelect = 1
+    SongView = 2
 
 
 class Player:
@@ -115,7 +116,7 @@ class Player:
         self.playing: bool = False
 
         self.state = State.SongView  # assigned temporarily
-        self.switch_modes(State.AlbumSelect)
+        self.switch_modes(State.ArtistSelect)
 
     def _reset_screen_timeout(self) -> None:
         self.last_button_press = time.time()
@@ -306,7 +307,10 @@ class Player:
         self._disp.display(self._screen)
 
     def render_list(
-        self, items: list[str], highlighted_index: int, formatter: Callable | None
+        self,
+        items: list[str],
+        highlighted_index: int,
+        formatter: Callable | None = None,
     ):
         self.screen_is_off = False
 
@@ -348,6 +352,9 @@ class Player:
 
         self.render_list(self.albums, self.album_index, format_album_item)
 
+    def render_artists(self):
+        self.render_list(self.artists, self.artist_index)
+
     def switch_modes(self, new_mode: State) -> None:
         # don't switch if already in the correct mode
         if new_mode == self.state:
@@ -356,6 +363,10 @@ class Player:
         if new_mode == State.AlbumSelect:
             self._set_album_select_buttons()
             self.render_albums()
+
+        elif new_mode == State.ArtistSelect:
+            self._set_artist_select_buttons()
+            self.render_artists()
 
         elif new_mode == State.SongView:
             self._set_song_view_buttons()
@@ -432,6 +443,43 @@ class Player:
             self._reset_screen_timeout()
             self.toggle_play()
             self.render_albums()
+
+        self._bind_button(self.y_button, _move_up, None)
+        self._bind_button(self.x_button, _move_down, None)
+        self._bind_button(self.b_button, _play_album, None)
+        self._bind_button(self.a_button, _toggle_play, None)
+
+    def _set_artist_select_buttons(self) -> None:
+        self._unbind_buttons()
+
+        # Incrementation and decrementing are reversed to account
+        # for album ordering on render_albums() going from 0 down
+        def _move_down():
+            self._reset_screen_timeout()
+            self.artist_index = increment_no_wrap(
+                self.artist_index, len(self.artists) - 1
+            )
+            self.render_artists()
+
+        def _move_up():
+            self._reset_screen_timeout()
+            self.artist_index = decrement_no_wrap(self.artist_index)
+            self.render_artists()
+
+        def _play_album():
+            self._reset_screen_timeout()
+            highlighted_album = self.albums[self.artist_index]
+
+            if self.current_album != highlighted_album:
+                self.current_album = highlighted_album
+                self.play_album(highlighted_album)
+
+            self.switch_modes(State.SongView)
+
+        def _toggle_play():
+            self._reset_screen_timeout()
+            self.toggle_play()
+            self.render_artists()
 
         self._bind_button(self.y_button, _move_up, None)
         self._bind_button(self.x_button, _move_down, None)
