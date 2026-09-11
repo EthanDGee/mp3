@@ -411,13 +411,18 @@ class Player:
             self.render_song()
 
         elif new_mode == PlayerState.CloudMenu:
+            self._set_cloud_menu_buttons()
             self.render_cloud_menu()
 
         self.state = new_mode
 
     def cycle_modes(self, current_state: PlayerState, forward: bool):
         # go backwards or forwards into the next item in the cycle (with wrapping)
-        screen_order = [PlayerState.ArtistSelect, PlayerState.AlbumSelect]
+        screen_order = [
+            PlayerState.ArtistSelect,
+            PlayerState.AlbumSelect,
+            PlayerState.CloudMenu,
+        ]
 
         # default to artist select screen if not part of the cycle
         if current_state not in screen_order:
@@ -605,6 +610,42 @@ class Player:
         self._bind_button(self.x_button, _move_down, None)
         self._bind_button(self.b_button, _play_album, None)
         self._bind_button(self.a_button, _toggle_play, None)
+
+    def _set_cloud_menu_buttons(self) -> None:
+        self._unbind_buttons()
+
+        # Incrementation and decrementing are reversed to account
+        # for album ordering on render_albums() going from 0 down
+        total_options = len(self.cloud.actions.keys())
+
+        def _move_down():
+            self._reset_screen_timeout()
+            self.ui_index = increment_no_wrap(self.ui_index, total_options - 1)
+            self.render_cloud_menu()
+
+        def _move_up():
+            self._reset_screen_timeout()
+            self.ui_index = decrement_no_wrap(self.ui_index)
+            self.render_cloud_menu()
+
+        def _activate_cloud_action():
+            self._reset_screen_timeout()
+            actions = list(self.cloud.actions.keys())
+            selected_action = actions[self.ui_index]
+            self.cloud.take_action(selected_action)
+            self.render_cloud_menu()
+
+        def _cycle_forward():
+            self._reset_screen_timeout()
+            self.cycle_modes(PlayerState.ArtistSelect, True)
+
+        def _cycle_backward():
+            self._reset_screen_timeout()
+            self.cycle_modes(PlayerState.ArtistSelect, False)
+
+        self._bind_button(self.y_button, _move_up, _cycle_forward)
+        self._bind_button(self.x_button, _move_down, _cycle_backward)
+        self._bind_button(self.b_button, _activate_cloud_action, None)
 
     def _set_song_view_buttons(self, previous_screen: PlayerState) -> None:
         # previous_screen makes it possible to back track to the menu that song view was entered from.
