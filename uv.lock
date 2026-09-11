@@ -252,6 +252,8 @@ dependencies = [
     { name = "mopidy-mpd" },
     { name = "mopidy-raspberry-gpio" },
     { name = "python-mpd2" },
+    { name = "rclone-python" },
+    { name = "rich" },
     { name = "st7789" },
 ]
 
@@ -263,6 +265,8 @@ requires-dist = [
     { name = "mopidy-mpd", specifier = ">=4.0.1" },
     { name = "mopidy-raspberry-gpio", specifier = ">=1.0.4,<2.0.0" },
     { name = "python-mpd2", specifier = ">=3.1.1,<4.0.0" },
+    { name = "rclone-python", specifier = ">=0.1.25" },
+    { name = "rich", specifier = ">=15.0.0" },
     { name = "st7789", specifier = ">=1.0.1,<2.0.0" },
 ]
 
@@ -380,6 +384,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/be/e77206eb35eb37ccd3506fba237e1431431d04c482707730ce2a6802e95c/python-mpd2-3.1.1.tar.gz", hash = "sha256:4baec3584cc43ed9948d5559079fafc2679b06b2ade273e909b3582654b2b3f5", size = 58713, upload-time = "2024-01-13T11:47:42.032Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/6d/1b9e1c203057c9a7fa6971db3605188a8ef1120ca305e4878c960ab6e2d3/python_mpd2-3.1.1-py2.py3-none-any.whl", hash = "sha256:86bf1100a0b135959d74a9a7a58cf0515bf30bb54eb25ae6fb8e175e50300fc3", size = 35050, upload-time = "2024-01-13T11:47:40.013Z" },
+]
+
+[[package]]
+name = "rclone-python"
+version = "0.1.25"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9a/c2/0a1083f121446a3b847263d23d02cd63ef88182d4883e98b48a31365131c/rclone_python-0.1.25.tar.gz", hash = "sha256:8f4ff961ccd51db5c5ab2cd528448f450ea2ba472b44f83346728e832bc15c4e", size = 24215, upload-time = "2026-07-18T22:20:32.49Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/81/cf1c32b9a040d73b859dd0ec96eb11186084cb8d7107eb31c94ee2a420f8/rclone_python-0.1.25-py3-none-any.whl", hash = "sha256:d0966d599adcff3574655eb71678db3625d00f92160ed6ba4291bd0f9d61175d", size = 15882, upload-time = "2026-07-18T22:20:31.566Z" },
 ]
 
 [[package]]

@@ -38,7 +38,7 @@ from utils import (
 )
 
 
-class State(Enum):
+class PlayerState(Enum):
     AlbumSelect = 0
     ArtistSelect = 1
     DiscographySelect = 2
@@ -125,17 +125,17 @@ class Player:
 
         self.playing: bool = False
 
-        self.state = State.SongView  # assigned temporarily
-        self.switch_modes(State.ArtistSelect)
+        self.state = PlayerState.SongView  # assigned temporarily
+        self.switch_modes(PlayerState.ArtistSelect)
 
     def _reset_screen_timeout(self) -> None:
         self.last_button_press = time.time()
 
         # If the screen was off, wake it up by re-rendering the current state
         if self.screen_is_off:
-            if self.state == State.AlbumSelect:
+            if self.state == PlayerState.AlbumSelect:
                 self.render_albums()
-            elif self.state == State.SongView:
+            elif self.state == PlayerState.SongView:
                 self.render_song()
 
     def _turn_screen(self) -> None:
@@ -380,42 +380,42 @@ class Player:
     def render_discography(self):
         self.render_list(self.discography, self.ui_index)
 
-    def switch_modes(self, new_mode: State) -> None:
+    def switch_modes(self, new_mode: PlayerState) -> None:
         # don't switch if already in the correct mode
         if new_mode == self.state:
             return
 
-        if new_mode == State.AlbumSelect:
+        if new_mode == PlayerState.AlbumSelect:
             self._set_album_select_buttons()
             self.render_albums()
 
-        elif new_mode == State.ArtistSelect:
+        elif new_mode == PlayerState.ArtistSelect:
             self._set_artist_select_buttons()
             self.render_artists()
 
-        elif new_mode == State.DiscographySelect:
+        elif new_mode == PlayerState.DiscographySelect:
             self.render_discography()
             self._set_discography_select_buttons()
 
-        elif new_mode == State.SongView:
+        elif new_mode == PlayerState.SongView:
             self._set_song_view_buttons(self.state)
             self.render_song()
 
         self.state = new_mode
 
-    def cycle_modes(self, current_state: State, forward: bool):
+    def cycle_modes(self, current_state: PlayerState, forward: bool):
         # go backwards or forwards into the next item in the cycle (with wrapping)
-        screen_order = [State.ArtistSelect, State.AlbumSelect]
+        screen_order = [PlayerState.ArtistSelect, PlayerState.AlbumSelect]
 
         # default to artist select screen if not part of the cycle
         if current_state not in screen_order:
             self.artist_index = 0
-            self.switch_modes(State.ArtistSelect)
+            self.switch_modes(PlayerState.ArtistSelect)
 
         screen_count = len(screen_order)
         current_index = screen_order.index(current_state)
 
-        new_mode = State.ArtistSelect
+        new_mode = PlayerState.ArtistSelect
         if forward:
             new_mode = screen_order[
                 increment_with_wrap(current_index, screen_count - 1)
@@ -427,9 +427,9 @@ class Player:
             ]
 
         # update state info to make sense for the next screen
-        if new_mode == State.ArtistSelect:
+        if new_mode == PlayerState.ArtistSelect:
             self.artist_index = 0
-        elif new_mode == State.AlbumSelect:
+        elif new_mode == PlayerState.AlbumSelect:
             self.album_index = 0
         self.switch_modes(new_mode)
 
@@ -496,7 +496,7 @@ class Player:
                 self.current_album = highlighted_album
                 self.play_album(highlighted_album)
 
-            self.switch_modes(State.SongView)
+            self.switch_modes(PlayerState.SongView)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -505,11 +505,11 @@ class Player:
 
         def _cycle_forward():
             self._reset_screen_timeout()
-            self.cycle_modes(State.AlbumSelect, True)
+            self.cycle_modes(PlayerState.AlbumSelect, True)
 
         def _cycle_backward():
             self._reset_screen_timeout()
-            self.cycle_modes(State.AlbumSelect, False)
+            self.cycle_modes(PlayerState.AlbumSelect, False)
 
         self._bind_button(self.y_button, _move_up, _cycle_forward)
         self._bind_button(self.x_button, _move_down, _cycle_backward)
@@ -538,7 +538,7 @@ class Player:
             highlighted_artist = self.artists[self.artist_index]
             self.discography = self.get_discography(highlighted_artist)
 
-            self.switch_modes(State.DiscographySelect)
+            self.switch_modes(PlayerState.DiscographySelect)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -547,11 +547,11 @@ class Player:
 
         def _cycle_forward():
             self._reset_screen_timeout()
-            self.cycle_modes(State.ArtistSelect, True)
+            self.cycle_modes(PlayerState.ArtistSelect, True)
 
         def _cycle_backward():
             self._reset_screen_timeout()
-            self.cycle_modes(State.ArtistSelect, False)
+            self.cycle_modes(PlayerState.ArtistSelect, False)
 
         self._bind_button(self.y_button, _move_up, _cycle_forward)
         self._bind_button(self.x_button, _move_down, _cycle_backward)
@@ -575,14 +575,14 @@ class Player:
 
         def _return_to_artist_select():
             self._reset_screen_timeout()
-            self.switch_modes(State.ArtistSelect)
+            self.switch_modes(PlayerState.ArtistSelect)
 
         def _play_album():
             self._reset_screen_timeout()
             artist = self.artists[self.artist_index]
             album = self.discography[self.ui_index]
             self.play_album(album=album, artist=artist)
-            self.switch_modes(State.SongView)
+            self.switch_modes(PlayerState.SongView)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -594,7 +594,7 @@ class Player:
         self._bind_button(self.b_button, _play_album, None)
         self._bind_button(self.a_button, _toggle_play, None)
 
-    def _set_song_view_buttons(self, previous_screen: State) -> None:
+    def _set_song_view_buttons(self, previous_screen: PlayerState) -> None:
         # previous_screen makes it possible to back track to the menu that song view was entered from.
         self._unbind_buttons()
 
