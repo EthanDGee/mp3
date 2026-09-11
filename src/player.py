@@ -36,7 +36,8 @@ from utils import decrement_no_wrap, increment_no_wrap
 class State(Enum):
     AlbumSelect = 0
     ArtistSelect = 1
-    SongView = 2
+    DiscographySelect = 2
+    SongView = 3
 
 
 class Player:
@@ -105,11 +106,15 @@ class Player:
         # Library Info
         self.albums = self.get_albums()
         self.artists = self.get_artists()
+        self.discography: list[str] = []
 
         # Application State
         self.album_index = 0
         self.artist_index = 0
         self.song_index = 0
+
+        # a general UI index
+        self.ui_index = 0
 
         self.current_album = None
 
@@ -194,6 +199,18 @@ class Player:
         albums.sort()
 
         return albums
+
+    def get_discography(self, artist: str) -> list[str]:
+        self._ensure_connected()
+
+        album_dict = self.client.list("album", "artist", artist)
+
+        releases = []
+        for i in album_dict:
+            releases.append(i["album"])
+        releases.sort()
+
+        return releases
 
     def play_album(self, album: str, artist: str | None = None):
         self._ensure_connected()
@@ -355,6 +372,9 @@ class Player:
     def render_artists(self):
         self.render_list(self.artists, self.artist_index)
 
+    def render_discography(self):
+        self.render_list(self.discography, self.ui_index)
+
     def switch_modes(self, new_mode: State) -> None:
         # don't switch if already in the correct mode
         if new_mode == self.state:
@@ -367,6 +387,10 @@ class Player:
         elif new_mode == State.ArtistSelect:
             self._set_artist_select_buttons()
             self.render_artists()
+
+        elif new_mode == State.DiscographySelect:
+            self.render_discography()
+            self._set_discography_select_buttons()
 
         elif new_mode == State.SongView:
             self._set_song_view_buttons()
@@ -466,15 +490,12 @@ class Player:
             self.artist_index = decrement_no_wrap(self.artist_index)
             self.render_artists()
 
-        def _play_album():
+        def _go_to_discography():
             self._reset_screen_timeout()
-            highlighted_album = self.albums[self.artist_index]
+            highlighted_artist = self.artists[self.artist_index]
+            self.discography = self.get_discography(highlighted_artist)
 
-            if self.current_album != highlighted_album:
-                self.current_album = highlighted_album
-                self.play_album(highlighted_album)
-
-            self.switch_modes(State.SongView)
+            self.switch_modes(State.DiscographySelect)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -482,6 +503,42 @@ class Player:
             self.render_artists()
 
         self._bind_button(self.y_button, _move_up, None)
+        self._bind_button(self.x_button, _move_down, None)
+        self._bind_button(self.b_button, _go_to_discography, None)
+        self._bind_button(self.a_button, _toggle_play, None)
+
+    def _set_discography_select_buttons(self) -> None:
+        self._unbind_buttons()
+
+        # Incrementation and decrementing are reversed to account
+        # for album ordering on render_albums() going from 0 down
+        def _move_down():
+            self._reset_screen_timeout()
+            self.ui_index = increment_no_wrap(self.ui_index, len(self.discography) - 1)
+            self.render_discography()
+
+        def _move_up():
+            self._reset_screen_timeout()
+            self.ui_index = decrement_no_wrap(self.ui_index)
+            self.render_discography()
+
+        def _return_to_artist_select():
+            self._reset_screen_timeout()
+            self.switch_modes(State.ArtistSelect)
+
+        def _play_album():
+            self._reset_screen_timeout()
+            artist = self.artists[self.artist_index]
+            album = self.discography[self.ui_index]
+            self.play_album(album=album, artist=artist)
+            self.switch_modes(State.SongView)
+
+        def _toggle_play():
+            self._reset_screen_timeout()
+            self.toggle_play()
+            self.render_discography()
+
+        self._bind_button(self.y_button, _move_up, _return_to_artist_select)
         self._bind_button(self.x_button, _move_down, None)
         self._bind_button(self.b_button, _play_album, None)
         self._bind_button(self.a_button, _toggle_play, None)
