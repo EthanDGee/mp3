@@ -12,6 +12,7 @@ from mpd import ConnectionError as MPDConnectionError
 from mpd import MPDClient
 from PIL import Image, ImageDraw
 
+from cloud_syncing import CloudSync
 from constants import (
     BACKGROUND_COLOR,
     BOUNCE_TIME,
@@ -43,6 +44,7 @@ class PlayerState(Enum):
     ArtistSelect = 1
     DiscographySelect = 2
     SongView = 3
+    CloudMenu = 4
 
 
 class Player:
@@ -57,6 +59,9 @@ class Player:
         self.client.random(0)
         self.client.consume(0)
         self.client.single(0)
+
+        # initialize cloud syncing manager
+        self.cloud = CloudSync()
 
         # initialize display
         self._disp = ST7789.ST7789(
@@ -126,7 +131,7 @@ class Player:
         self.playing: bool = False
 
         self.state = PlayerState.SongView  # assigned temporarily
-        self.switch_modes(PlayerState.ArtistSelect)
+        self.switch_modes(PlayerState.CloudMenu)
 
     def _reset_screen_timeout(self) -> None:
         self.last_button_press = time.time()
@@ -380,6 +385,10 @@ class Player:
     def render_discography(self):
         self.render_list(self.discography, self.ui_index)
 
+    def render_cloud_menu(self):
+        action_names = list(self.cloud.actions.keys())
+        self.render_list(action_names, self.ui_index)
+
     def switch_modes(self, new_mode: PlayerState) -> None:
         # don't switch if already in the correct mode
         if new_mode == self.state:
@@ -400,6 +409,9 @@ class Player:
         elif new_mode == PlayerState.SongView:
             self._set_song_view_buttons(self.state)
             self.render_song()
+
+        elif new_mode == PlayerState.CloudMenu:
+            self.render_cloud_menu()
 
         self.state = new_mode
 

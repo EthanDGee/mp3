@@ -33,6 +33,13 @@ class CloudSync:
             TransferSpeedColumn(),
         )
 
+        # a mapping of actions and names available to the mp3 player
+        self.actions = {
+            "Sync Local Data": self.sync,
+            "Download Cloud Data": self.download,
+            "Upload Local Data": self.upload,
+        }
+
     def _update_progress_text(self, desc: str):
         self.progress_label.text_format = desc
 
