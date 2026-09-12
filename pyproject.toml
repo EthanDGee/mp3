@@ -14,6 +14,8 @@ dependencies = [
   "python-mpd2 (>=3.1.1,<4.0.0)",
   "mopidy-mpd>=4.0.1",
   "gpiozero",
+  "rclone-python>=0.1.25",
+  "rich>=15.0.0",
 ]
 
 

@@ -160,12 +160,6 @@ wheels = [
 ]
 
 [[package]]
-name = "lgpio"
-version = "0.2.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/56/33/26ec2e8049eaa2f077bf23a12dc61ca559fbfa7bea0516bf263d657ae275/lgpio-0.2.2.0.tar.gz", hash = "sha256:11372e653b200f76a0b3ef8a23a0735c85ec678a9f8550b9893151ed0f863fff", size = 90087, upload-time = "2024-03-29T21:59:55.901Z" }
-
-[[package]]
 name = "markdown-it-py"
 version = "4.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -258,7 +252,8 @@ dependencies = [
     { name = "mopidy-mpd" },
     { name = "mopidy-raspberry-gpio" },
     { name = "python-mpd2" },
-    { name = "rpi-lgpio" },
+    { name = "rclone-python" },
+    { name = "rich" },
     { name = "st7789" },
 ]
 
@@ -270,7 +265,8 @@ requires-dist = [
     { name = "mopidy-mpd", specifier = ">=4.0.1" },
     { name = "mopidy-raspberry-gpio", specifier = ">=1.0.4,<2.0.0" },
     { name = "python-mpd2", specifier = ">=3.1.1,<4.0.0" },
-    { name = "rpi-lgpio" },
+    { name = "rclone-python", specifier = ">=0.1.25" },
+    { name = "rich", specifier = ">=15.0.0" },
     { name = "st7789", specifier = ">=1.0.1,<2.0.0" },
 ]
 
@@ -391,6 +387,18 @@ wheels = [
 ]
 
 [[package]]
+name = "rclone-python"
+version = "0.1.25"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9a/c2/0a1083f121446a3b847263d23d02cd63ef88182d4883e98b48a31365131c/rclone_python-0.1.25.tar.gz", hash = "sha256:8f4ff961ccd51db5c5ab2cd528448f450ea2ba472b44f83346728e832bc15c4e", size = 24215, upload-time = "2026-07-18T22:20:32.49Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/81/cf1c32b9a040d73b859dd0ec96eb11186084cb8d7107eb31c94ee2a420f8/rclone_python-0.1.25-py3-none-any.whl", hash = "sha256:d0966d599adcff3574655eb71678db3625d00f92160ed6ba4291bd0f9d61175d", size = 15882, upload-time = "2026-07-18T22:20:31.566Z" },
+]
+
+[[package]]
 name = "rich"
 version = "15.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -414,18 +422,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e2/d6/d0b9fafc73b65767200da027acab1db1bdb1048f4fea5ebf659df01c700e/rich_rst-2.1.0.tar.gz", hash = "sha256:f4d117b49697f338769759fa5cacf5197da4888b347b9fda2e50aef5cd8d93bd", size = 302732, upload-time = "2026-07-05T02:59:44.308Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/68/1fc93dd759605b5d00fc98b50200739e41ed32bd22d6ba35ca6c3932371b/rich_rst-2.1.0-py3-none-any.whl", hash = "sha256:7ecd1343ee12c879d0e7ae74c3eb6d263b023d2929c6d114212eb1fd91057255", size = 272987, upload-time = "2026-07-05T02:59:42.792Z" },
-]
-
-[[package]]
-name = "rpi-lgpio"
-version = "0.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lgpio" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/6d/7b6cb0def16abda6af89d16a3363d4036501bf042f9c67668aad3b34927f/rpi_lgpio-0.6.tar.gz", hash = "sha256:84579b11d543bb8abdddc1e10fcd6bdc2819e5897be72d6949a2b044d71fb73e", size = 12723, upload-time = "2024-05-11T16:09:29.463Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/a9/06b843528e47ded0dd276537e9c56e7aec7c841b3b2749274e7d8121dab5/rpi_lgpio-0.6-py3-none-any.whl", hash = "sha256:0930b6e0ffbfbeee9366fbfa5038d29a7606be96a5229d570b1f81be8f776777", size = 11880, upload-time = "2024-05-11T16:09:27.75Z" },
 ]
 
 [[package]]

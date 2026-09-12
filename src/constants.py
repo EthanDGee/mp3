@@ -10,6 +10,8 @@ VOLUME_INCREMENT = 5
 
 # Music Library Info
 MUSIC_DIR = Path.home() / "Music"
+CLOUD_REMOTE_NAME = "gdrive"
+CLOUD_MUSIC_DIR = "Music/mp3"
 
 # Display
 DISP_HEIGHT = 240
@@ -39,3 +41,5 @@ FONT = ImageFont.truetype(
 BACKGROUND_COLOR = (0, 0, 0)
 TEXT_COLOR = (255, 255, 255)
 HIGHLIGHT_COLOR = (55, 165, 55)
+# Needs to be one of the standard 256 colors
+PROGRESS_BAR_COLOR = "dodger_blue1"  # #0087ff
