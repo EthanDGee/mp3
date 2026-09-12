@@ -12,6 +12,7 @@ from rich.progress import (
 from rich.style import Style
 
 from constants import CLOUD_MUSIC_DIR, CLOUD_REMOTE_NAME, MUSIC_DIR, PROGRESS_BAR_COLOR
+from utils import scan_local_music
 
 # set limits to optimize it for background usage
 RESOURCE_LIMITS = [
@@ -61,6 +62,7 @@ class CloudSync:
             "Sync Local Data": self._sync,
             "Download Cloud Data": self._download,
             "Upload Local Data": self._upload,
+            "Scan Local Music": scan_local_music,
             "Cancel": self._cancel,
         }
 

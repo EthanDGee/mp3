@@ -445,8 +445,10 @@ class Player:
 
         # update state info to make sense for the next screen
         if new_mode == PlayerState.ArtistSelect:
+            self.artists = self.get_artists()
             self.artist_index = 0
         elif new_mode == PlayerState.AlbumSelect:
+            self.albums = self.get_albums()
             self.album_index = 0
         self.switch_modes(new_mode)
 
