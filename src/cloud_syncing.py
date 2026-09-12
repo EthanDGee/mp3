@@ -1,3 +1,4 @@
+import subprocess
 import threading
 from enum import Enum
 
@@ -112,6 +113,11 @@ class CloudSync:
         if self.state is None:
             return
         self.state = SyncState.Cancel
+
+        # rclone_python runs rclone in a subprocess so it needs to
+        # be killed directly
+        subprocess.run(["pkill", "-f", f"rclone .*{self.local}"], check=False)
+
         if self.sync_process is not None and self.sync_process.is_alive():
             self.sync_process.join()
         self.state = None
