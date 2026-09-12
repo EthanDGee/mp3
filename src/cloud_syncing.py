@@ -71,12 +71,10 @@ class CloudSync:
             return
         self._update_progress_text(SyncState.Sync.value)
 
-        args = RESOURCE_LIMITS + [self.local, self.remote]
-
         self.sync_process = threading.Thread(
             target=rclone.sync,
-            args=args,
-            kwargs={"pbar": self.progress_bar},
+            args=(self.local, self.remote),
+            kwargs={"args": RESOURCE_LIMITS, "pbar": self.progress_bar},
             daemon=True,
         )
         self.sync_process.start()
@@ -87,12 +85,10 @@ class CloudSync:
             return
         self._update_progress_text(SyncState.Download.value)
 
-        args = RESOURCE_LIMITS + [self.remote, self.local]
-
         self.sync_process = threading.Thread(
             target=rclone.copy,
-            args=args,
-            kwargs={"pbar": self.progress_bar},
+            args=(self.remote, self.local),
+            kwargs={"args": RESOURCE_LIMITS, "pbar": self.progress_bar},
             daemon=True,
         )
         self.sync_process.start()
@@ -103,12 +99,10 @@ class CloudSync:
             return
         self._update_progress_text(SyncState.Upload.value)
 
-        args = RESOURCE_LIMITS + [self.local, self.remote]
-
         self.sync_process = threading.Thread(
             target=rclone.copy,
-            args=args,
-            kwargs={"pbar": self.progress_bar},
+            args=(self.local, self.remote),
+            kwargs={"args": RESOURCE_LIMITS, "pbar": self.progress_bar},
             daemon=True,
         )
         self.sync_process.start()
@@ -127,3 +121,14 @@ class CloudSync:
         print(f"Cloud: Running {name}...")
         self.actions[name]()
         print(f"Cloud: finished running {name}.")
+
+
+if __name__ == "__main__":
+    cloud = CloudSync()
+
+    try:
+        cloud._upload()
+        if cloud.sync_process is not None:
+            cloud.sync_process.join()
+    except KeyboardInterrupt:
+        cloud._cancel()
