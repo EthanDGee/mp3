@@ -139,9 +139,9 @@ class Player:
         # If the screen was off, wake it up by re-rendering the current state
         if self.screen_is_off:
             if self.state == PlayerState.AlbumSelect:
-                self.render_albums()
+                self._render_albums()
             elif self.state == PlayerState.SongView:
-                self.render_song()
+                self._render_song()
 
     def _turn_screen(self) -> None:
         self._previous_screen.paste(self._screen, (0, 0))
@@ -276,7 +276,7 @@ class Player:
 
         return None
 
-    def render_song(self, show_song_info: bool = False):
+    def _render_song(self, show_song_info: bool = False):
         self.screen_is_off = False
 
         # if possible render image as background
@@ -333,7 +333,7 @@ class Player:
         self._disp.set_backlight(1)
         self._disp.display(self._screen)
 
-    def render_list(
+    def _render_list(
         self,
         items: list[str],
         highlighted_index: int,
@@ -370,24 +370,24 @@ class Player:
         self._disp.display(self._screen)
         self._disp.set_backlight(1)
 
-    def render_albums(self):
+    def _render_albums(self):
         def format_album_item(album_title) -> str:
             if album_title == self.current_album:
                 selection_indicator = "+ " if self._is_playing_music() else "- "
                 return selection_indicator + album_title
             return album_title
 
-        self.render_list(self.albums, self.album_index, format_album_item)
+        self._render_list(self.albums, self.album_index, format_album_item)
 
-    def render_artists(self):
-        self.render_list(self.artists, self.artist_index)
+    def _render_artists(self):
+        self._render_list(self.artists, self.artist_index)
 
-    def render_discography(self):
-        self.render_list(self.discography, self.ui_index)
+    def _render_discography(self):
+        self._render_list(self.discography, self.ui_index)
 
-    def render_cloud_menu(self):
+    def _render_cloud_menu(self):
         action_names = list(self.cloud.actions.keys())
-        self.render_list(action_names, self.ui_index)
+        self._render_list(action_names, self.ui_index)
 
     def switch_modes(self, new_mode: PlayerState) -> None:
         # don't switch if already in the correct mode
@@ -396,23 +396,23 @@ class Player:
 
         if new_mode == PlayerState.AlbumSelect:
             self._set_album_select_buttons()
-            self.render_albums()
+            self._render_albums()
 
         elif new_mode == PlayerState.ArtistSelect:
             self._set_artist_select_buttons()
-            self.render_artists()
+            self._render_artists()
 
         elif new_mode == PlayerState.DiscographySelect:
-            self.render_discography()
+            self._render_discography()
             self._set_discography_select_buttons()
 
         elif new_mode == PlayerState.SongView:
             self._set_song_view_buttons(self.state)
-            self.render_song()
+            self._render_song()
 
         elif new_mode == PlayerState.CloudMenu:
             self._set_cloud_menu_buttons()
-            self.render_cloud_menu()
+            self._render_cloud_menu()
 
         self.state = new_mode
 
@@ -498,12 +498,12 @@ class Player:
         def _move_down():
             self._reset_screen_timeout()
             self.album_index = increment_no_wrap(self.album_index, len(self.albums) - 1)
-            self.render_albums()
+            self._render_albums()
 
         def _move_up():
             self._reset_screen_timeout()
             self.album_index = decrement_no_wrap(self.album_index)
-            self.render_albums()
+            self._render_albums()
 
         def _play_album():
             self._reset_screen_timeout()
@@ -518,7 +518,7 @@ class Player:
         def _toggle_play():
             self._reset_screen_timeout()
             self.toggle_play()
-            self.render_albums()
+            self._render_albums()
 
         def _cycle_forward():
             self._reset_screen_timeout()
@@ -543,12 +543,12 @@ class Player:
             self.artist_index = increment_no_wrap(
                 self.artist_index, len(self.artists) - 1
             )
-            self.render_artists()
+            self._render_artists()
 
         def _move_up():
             self._reset_screen_timeout()
             self.artist_index = decrement_no_wrap(self.artist_index)
-            self.render_artists()
+            self._render_artists()
 
         def _go_to_discography():
             self._reset_screen_timeout()
@@ -560,7 +560,7 @@ class Player:
         def _toggle_play():
             self._reset_screen_timeout()
             self.toggle_play()
-            self.render_artists()
+            self._render_artists()
 
         def _cycle_forward():
             self._reset_screen_timeout()
@@ -583,12 +583,12 @@ class Player:
         def _move_down():
             self._reset_screen_timeout()
             self.ui_index = increment_no_wrap(self.ui_index, len(self.discography) - 1)
-            self.render_discography()
+            self._render_discography()
 
         def _move_up():
             self._reset_screen_timeout()
             self.ui_index = decrement_no_wrap(self.ui_index)
-            self.render_discography()
+            self._render_discography()
 
         def _return_to_artist_select():
             self._reset_screen_timeout()
@@ -604,7 +604,7 @@ class Player:
         def _toggle_play():
             self._reset_screen_timeout()
             self.toggle_play()
-            self.render_discography()
+            self._render_discography()
 
         self._bind_button(self.y_button, _move_up, _return_to_artist_select)
         self._bind_button(self.x_button, _move_down, None)
@@ -621,19 +621,19 @@ class Player:
         def _move_down():
             self._reset_screen_timeout()
             self.ui_index = increment_no_wrap(self.ui_index, total_options - 1)
-            self.render_cloud_menu()
+            self._render_cloud_menu()
 
         def _move_up():
             self._reset_screen_timeout()
             self.ui_index = decrement_no_wrap(self.ui_index)
-            self.render_cloud_menu()
+            self._render_cloud_menu()
 
         def _activate_cloud_action():
             self._reset_screen_timeout()
             actions = list(self.cloud.actions.keys())
             selected_action = actions[self.ui_index]
             self.cloud.take_action(selected_action)
-            self.render_cloud_menu()
+            self._render_cloud_menu()
 
         def _cycle_forward():
             self._reset_screen_timeout()
@@ -663,7 +663,7 @@ class Player:
         def _next_song():
             self._reset_screen_timeout()
             self.client.next()
-            self.render_song()
+            self._render_song()
 
         def _volume_down():
             self._reset_screen_timeout()
@@ -672,14 +672,14 @@ class Player:
         def _prev_song():
             self._reset_screen_timeout()
             self.client.prev()
-            self.render_song()
+            self._render_song()
 
         def _toggle_play():
             self._reset_screen_timeout()
             self.toggle_play()
             show_text = not self._is_playing_music()
 
-            self.render_song(show_text)
+            self._render_song(show_text)
 
         self._bind_button(self.y_button, _back_to_previous_screen)
         self._bind_button(self.b_button, _volume_up, _next_song)
