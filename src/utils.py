@@ -1,3 +1,5 @@
+import subprocess
+
 from PIL import Image, ImageDraw
 
 from constants import FONT
@@ -25,6 +27,10 @@ def decrement_with_wrap(index: int, max: int) -> int:
     if index - 1 < 0:
         return max
     return index - 1
+
+
+def scan_local_music():
+    subprocess.run(["mopidy", "local", "scan"], check=True)
 
 
 def str_to_pixel_count(string: str) -> int:
