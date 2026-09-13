@@ -131,7 +131,7 @@ class Player:
         self.playing: bool = False
 
         self.state = PlayerState.SongView  # assigned temporarily
-        self.switch_modes(PlayerState.CloudMenu)
+        self.switch_modes(PlayerState.ArtistSelect)
 
     def _reset_screen_timeout(self) -> None:
         self.last_button_press = time.time()
