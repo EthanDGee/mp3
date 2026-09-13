@@ -637,11 +637,11 @@ class Player:
 
         def _cycle_forward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.ArtistSelect, True)
+            self.cycle_modes(PlayerState.CloudMenu, True)
 
         def _cycle_backward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.ArtistSelect, False)
+            self.cycle_modes(PlayerState.CloudMenu, False)
 
         self._bind_button(self.y_button, _move_up, _cycle_forward)
         self._bind_button(self.x_button, _move_down, _cycle_backward)
