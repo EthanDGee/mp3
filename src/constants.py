@@ -40,7 +40,7 @@ TEXT_FONT = ImageFont.truetype(
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", TEXT_SIZE
 )
 
-HEADER_COLOR = "#ffffff"
+DEFAULT_HEADER_COLOR = "#ffffff"
 HEADER_SIZE = 20
 HEADER_FONT = ImageFont.truetype(
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", HEADER_SIZE

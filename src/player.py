@@ -19,10 +19,10 @@ from constants import (
     BUTTONS,
     CONNECTION_PORT,
     CONNECTION_TIMEOUT,
+    DEFAULT_HEADER_COLOR,
     DISP_HEIGHT,
     DISP_ROTATION,
     FRONT_BG_SLOT,
-    HEADER_COLOR,
     HEADER_FONT,
     HEADER_SIZE,
     HELD_BUTTON_DURATION,
@@ -44,11 +44,11 @@ from utils import (
 
 # Player state and the associate color
 class ScreenState(Enum):
-    AlbumSelect = 0
-    ArtistSelect = 1
-    DiscographySelect = 2
-    SongView = 3
-    CloudMenu = 4
+    AlbumSelect = "#8A2BE2"
+    ArtistSelect = "#32CD32"
+    DiscographySelect = "#FFCF00"
+    SongView = "#000000"
+    CloudMenu = "#1E90FF"
 
 
 class Player:
@@ -279,7 +279,15 @@ class Player:
 
         return None
 
-    def _render_header(self, header: str, color: str = HEADER_COLOR):
+    def _render_header(self, header: str, color: str | None = None):
+        # set color to be the current menu from the ScreenState enum value
+        if color is None:
+            if self.state is None:
+                color = DEFAULT_HEADER_COLOR
+            else:
+                color = self.state.value
+        print(f"Color:{color}")
+
         self._draw.rectangle((0, 0, DISP_HEIGHT, HEADER_SIZE), color)
         self._draw.text((0, 0), header, font=HEADER_FONT, fill=BACKGROUND_COLOR)
 
@@ -379,27 +387,34 @@ class Player:
         self._disp.display(self._screen)
 
     def _render_albums(self):
+        self._render_header("Album Select")
+
         def format_album_item(album_title) -> str:
             if album_title == self.current_album:
                 selection_indicator = "+ " if self._is_playing_music() else "- "
                 return selection_indicator + album_title
             return album_title
 
-        self._render_list(self.albums, self.album_index, 0, format_album_item)
+        self._render_list(self.albums, self.album_index, HEADER_SIZE, format_album_item)
 
     def _render_artists(self):
         self._render_header("Artist Select")
         self._render_list(self.artists, self.artist_index, HEADER_SIZE)
 
     def _render_discography(self):
-        self._render_list(self.discography, self.ui_index)
+        # get current artist
+        current_artist = self.artists[self.artist_index]
+        self._render_header(f"{current_artist}:")
+        self._render_list(self.discography, self.ui_index, HEADER_SIZE)
 
     def _render_cloud_menu(self):
+        self._render_header("Cloud Settings")
         action_names = list(self.cloud.actions.keys())
-        self._render_list(action_names, self.ui_index)
+        self._render_list(action_names, self.ui_index, HEADER_SIZE)
 
     def switch_modes(self, new_mode: ScreenState) -> None:
         # don't switch if already in the correct mode
+
         if new_mode == self.state:
             return
 
