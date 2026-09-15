@@ -34,12 +34,20 @@ SCREEN_INACTIVITY_THRESHOLD = 10
 
 
 # Theming
-FONT_SIZE = 20
-FONT = ImageFont.truetype(
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", FONT_SIZE
+TEXT_SIZE = 20
+TEXT_COLOR = "#ffffff"
+TEXT_FONT = ImageFont.truetype(
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", TEXT_SIZE
 )
-BACKGROUND_COLOR = (0, 0, 0)
-TEXT_COLOR = (255, 255, 255)
-HIGHLIGHT_COLOR = (55, 165, 55)
+
+DEFAULT_HEADER_COLOR = "#ffffff"
+HEADER_SIZE = 20
+HEADER_FONT = ImageFont.truetype(
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", HEADER_SIZE
+)
+
+
+BACKGROUND_COLOR = "#000000"
+HIGHLIGHT_COLOR = "#32CD32"
 # Needs to be one of the standard 256 colors
 PROGRESS_BAR_COLOR = "dodger_blue1"  # #0087ff
