@@ -23,6 +23,7 @@ from constants import (
     DISP_ROTATION,
     FRONT_BG_SLOT,
     HEADER_COLOR,
+    HEADER_FONT,
     HEADER_SIZE,
     HELD_BUTTON_DURATION,
     HIGHLIGHT_COLOR,
@@ -41,7 +42,8 @@ from utils import (
 )
 
 
-class PlayerState(Enum):
+# Player state and the associate color
+class ScreenState(Enum):
     AlbumSelect = 0
     ArtistSelect = 1
     DiscographySelect = 2
@@ -132,17 +134,17 @@ class Player:
 
         self.playing: bool = False
 
-        self.state = PlayerState.SongView  # assigned temporarily
-        self.switch_modes(PlayerState.ArtistSelect)
+        self.state = ScreenState.SongView  # assigned temporarily
+        self.switch_modes(ScreenState.ArtistSelect)
 
     def _reset_screen_timeout(self) -> None:
         self.last_button_press = time.time()
 
         # If the screen was off, wake it up by re-rendering the current state
         if self.screen_is_off:
-            if self.state == PlayerState.AlbumSelect:
+            if self.state == ScreenState.AlbumSelect:
                 self._render_albums()
-            elif self.state == PlayerState.SongView:
+            elif self.state == ScreenState.SongView:
                 self._render_song()
 
     def _turn_screen(self) -> None:
@@ -159,8 +161,7 @@ class Player:
         self._disp.set_backlight(0)
         # save the screen to a previous screen back up and draw an all black background to prevent burn in.
         self._previous_screen.paste(self._screen, (0, 0))
-        BLACK = (0, 0, 0)
-        self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BLACK)
+        self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
         self._disp.display(self._screen)
 
         self.screen_is_off = True
@@ -278,9 +279,9 @@ class Player:
 
         return None
 
-    def _render_header(self, header: str, color: tuple = HEADER_COLOR):
+    def _render_header(self, header: str, color: str = HEADER_COLOR):
         self._draw.rectangle((0, 0, DISP_HEIGHT, HEADER_SIZE), color)
-        self._draw.text((0, 0), header, font=TEXT_FONT, fill=BACKGROUND_COLOR)
+        self._draw.text((0, 0), header, font=HEADER_FONT, fill=BACKGROUND_COLOR)
 
     def _render_list(
         self,
@@ -384,7 +385,7 @@ class Player:
                 return selection_indicator + album_title
             return album_title
 
-        self._render_list(self.albums, self.album_index, format_album_item)
+        self._render_list(self.albums, self.album_index, 0, format_album_item)
 
     def _render_artists(self):
         self._render_header("Artist Select")
@@ -397,50 +398,50 @@ class Player:
         action_names = list(self.cloud.actions.keys())
         self._render_list(action_names, self.ui_index)
 
-    def switch_modes(self, new_mode: PlayerState) -> None:
+    def switch_modes(self, new_mode: ScreenState) -> None:
         # don't switch if already in the correct mode
         if new_mode == self.state:
             return
 
-        if new_mode == PlayerState.AlbumSelect:
+        if new_mode == ScreenState.AlbumSelect:
             self._set_album_select_buttons()
             self._render_albums()
 
-        elif new_mode == PlayerState.ArtistSelect:
+        elif new_mode == ScreenState.ArtistSelect:
             self._set_artist_select_buttons()
             self._render_artists()
 
-        elif new_mode == PlayerState.DiscographySelect:
+        elif new_mode == ScreenState.DiscographySelect:
             self._render_discography()
             self._set_discography_select_buttons()
 
-        elif new_mode == PlayerState.SongView:
+        elif new_mode == ScreenState.SongView:
             self._set_song_view_buttons(self.state)
             self._render_song()
 
-        elif new_mode == PlayerState.CloudMenu:
+        elif new_mode == ScreenState.CloudMenu:
             self._set_cloud_menu_buttons()
             self._render_cloud_menu()
 
         self.state = new_mode
 
-    def cycle_modes(self, current_state: PlayerState, forward: bool):
+    def cycle_modes(self, current_state: ScreenState, forward: bool):
         # go backwards or forwards into the next item in the cycle (with wrapping)
         screen_order = [
-            PlayerState.ArtistSelect,
-            PlayerState.AlbumSelect,
-            PlayerState.CloudMenu,
+            ScreenState.ArtistSelect,
+            ScreenState.AlbumSelect,
+            ScreenState.CloudMenu,
         ]
 
         # default to artist select screen if not part of the cycle
         if current_state not in screen_order:
             self.artist_index = 0
-            self.switch_modes(PlayerState.ArtistSelect)
+            self.switch_modes(ScreenState.ArtistSelect)
 
         screen_count = len(screen_order)
         current_index = screen_order.index(current_state)
 
-        new_mode = PlayerState.ArtistSelect
+        new_mode = ScreenState.ArtistSelect
         if forward:
             new_mode = screen_order[
                 increment_with_wrap(current_index, screen_count - 1)
@@ -452,10 +453,10 @@ class Player:
             ]
 
         # update state info to make sense for the next screen
-        if new_mode == PlayerState.ArtistSelect:
+        if new_mode == ScreenState.ArtistSelect:
             self.artists = self.get_artists()
             self.artist_index = 0
-        elif new_mode == PlayerState.AlbumSelect:
+        elif new_mode == ScreenState.AlbumSelect:
             self.albums = self.get_albums()
             self.album_index = 0
         self.switch_modes(new_mode)
@@ -523,7 +524,7 @@ class Player:
                 self.current_album = highlighted_album
                 self.play_album(highlighted_album)
 
-            self.switch_modes(PlayerState.SongView)
+            self.switch_modes(ScreenState.SongView)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -532,11 +533,11 @@ class Player:
 
         def _cycle_forward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.AlbumSelect, True)
+            self.cycle_modes(ScreenState.AlbumSelect, True)
 
         def _cycle_backward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.AlbumSelect, False)
+            self.cycle_modes(ScreenState.AlbumSelect, False)
 
         self._bind_button(self.y_button, _move_up, _cycle_forward)
         self._bind_button(self.x_button, _move_down, _cycle_backward)
@@ -565,7 +566,7 @@ class Player:
             highlighted_artist = self.artists[self.artist_index]
             self.discography = self.get_discography(highlighted_artist)
 
-            self.switch_modes(PlayerState.DiscographySelect)
+            self.switch_modes(ScreenState.DiscographySelect)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -574,11 +575,11 @@ class Player:
 
         def _cycle_forward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.ArtistSelect, True)
+            self.cycle_modes(ScreenState.ArtistSelect, True)
 
         def _cycle_backward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.ArtistSelect, False)
+            self.cycle_modes(ScreenState.ArtistSelect, False)
 
         self._bind_button(self.y_button, _move_up, _cycle_forward)
         self._bind_button(self.x_button, _move_down, _cycle_backward)
@@ -602,14 +603,14 @@ class Player:
 
         def _return_to_artist_select():
             self._reset_screen_timeout()
-            self.switch_modes(PlayerState.ArtistSelect)
+            self.switch_modes(ScreenState.ArtistSelect)
 
         def _play_album():
             self._reset_screen_timeout()
             artist = self.artists[self.artist_index]
             album = self.discography[self.ui_index]
             self.play_album(album=album, artist=artist)
-            self.switch_modes(PlayerState.SongView)
+            self.switch_modes(ScreenState.SongView)
 
         def _toggle_play():
             self._reset_screen_timeout()
@@ -647,17 +648,17 @@ class Player:
 
         def _cycle_forward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.CloudMenu, True)
+            self.cycle_modes(ScreenState.CloudMenu, True)
 
         def _cycle_backward():
             self._reset_screen_timeout()
-            self.cycle_modes(PlayerState.CloudMenu, False)
+            self.cycle_modes(ScreenState.CloudMenu, False)
 
         self._bind_button(self.y_button, _move_up, _cycle_forward)
         self._bind_button(self.x_button, _move_down, _cycle_backward)
         self._bind_button(self.b_button, _activate_cloud_action, None)
 
-    def _set_song_view_buttons(self, previous_screen: PlayerState) -> None:
+    def _set_song_view_buttons(self, previous_screen: ScreenState) -> None:
         # previous_screen makes it possible to back track to the menu that song view was entered from.
         self._unbind_buttons()
 
