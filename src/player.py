@@ -21,14 +21,16 @@ from constants import (
     CONNECTION_TIMEOUT,
     DISP_HEIGHT,
     DISP_ROTATION,
-    FONT,
-    FONT_SIZE,
     FRONT_BG_SLOT,
+    HEADER_COLOR,
+    HEADER_SIZE,
     HELD_BUTTON_DURATION,
     HIGHLIGHT_COLOR,
     MUSIC_DIR,
     SCREEN_INACTIVITY_THRESHOLD,
     TEXT_COLOR,
+    TEXT_FONT,
+    TEXT_SIZE,
     VOLUME_INCREMENT,
 )
 from utils import (
@@ -276,6 +278,48 @@ class Player:
 
         return None
 
+    def _render_header(self, header: str, color: tuple = HEADER_COLOR):
+        self._draw.rectangle((0, 0, DISP_HEIGHT, HEADER_SIZE), color)
+        self._draw.text((0, 0), header, font=TEXT_FONT, fill=BACKGROUND_COLOR)
+
+    def _render_list(
+        self,
+        items: list[str],
+        highlighted_index: int,
+        y_offset: int = 0,
+        formatter: Callable | None = None,
+    ):
+        self.screen_is_off = False
+
+        # blot out background
+        self._draw.rectangle((0, y_offset, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
+
+        # set bounds for what albums will be rendered to enable scrolling
+        # to make it easy to see if there are albums that are above the current render 2 albums above the current album.
+
+        y_offset = y_offset - TEXT_SIZE
+
+        SELECTION_OFFSET = 1
+        RENDERED_COUNT = int(DISP_HEIGHT / TEXT_SIZE) + 1
+        first_item = max(highlighted_index - SELECTION_OFFSET, 0)
+        last_item = min(highlighted_index + RENDERED_COUNT, len(items))
+
+        for i in range(first_item, last_item):
+            item = items[i]
+            y_offset += TEXT_SIZE
+
+            if i == highlighted_index:
+                self._draw.rectangle(
+                    (0, y_offset, DISP_HEIGHT, y_offset + TEXT_SIZE), HIGHLIGHT_COLOR
+                )
+
+            text = formatter(item) if formatter is not None else item
+
+            self._draw.text((0, y_offset), text, font=TEXT_FONT, fill=TEXT_COLOR)
+
+        self._disp.display(self._screen)
+        self._disp.set_backlight(1)
+
     def _render_song(self, show_song_info: bool = False):
         self.screen_is_off = False
 
@@ -303,7 +347,7 @@ class Player:
             self._draw.text(
                 (center_x, int(DISP_HEIGHT * 0.2)),
                 title,
-                font=FONT,
+                font=TEXT_FONT,
                 fill="white",
                 stroke_width=2,
                 stroke_fill="black",
@@ -313,7 +357,7 @@ class Player:
             self._draw.text(
                 (center_x, int(DISP_HEIGHT * 0.4)),
                 artist,
-                font=FONT,
+                font=TEXT_FONT,
                 fill="white",
                 stroke_width=2,
                 stroke_fill="black",
@@ -323,7 +367,7 @@ class Player:
             self._draw.text(
                 (center_x, int(DISP_HEIGHT * 0.6)),
                 album,
-                font=FONT,
+                font=TEXT_FONT,
                 fill="white",
                 stroke_width=2,
                 stroke_fill="black",
@@ -332,43 +376,6 @@ class Player:
 
         self._disp.set_backlight(1)
         self._disp.display(self._screen)
-
-    def _render_list(
-        self,
-        items: list[str],
-        highlighted_index: int,
-        formatter: Callable | None = None,
-    ):
-        self.screen_is_off = False
-
-        # background
-        self._draw.rectangle((0, 0, DISP_HEIGHT, DISP_HEIGHT), BACKGROUND_COLOR)
-
-        # set bounds for what albums will be rendered to enable scrolling
-        # to make it easy to see if there are albums that are above the current render 2 albums above the current album.
-
-        SELECTION_OFFSET = 2
-        RENDERED_COUNT = int(DISP_HEIGHT / FONT_SIZE) + 1
-        first_item = max(highlighted_index - SELECTION_OFFSET, 0)
-        last_item = min(highlighted_index + RENDERED_COUNT, len(items))
-
-        y_offset = -FONT_SIZE
-
-        for i in range(first_item, last_item):
-            item = items[i]
-            y_offset += FONT_SIZE
-
-            if i == highlighted_index:
-                self._draw.rectangle(
-                    (0, y_offset, DISP_HEIGHT, y_offset + FONT_SIZE), HIGHLIGHT_COLOR
-                )
-
-            text = formatter(item) if formatter is not None else item
-
-            self._draw.text((0, y_offset), text, font=FONT, fill=TEXT_COLOR)
-
-        self._disp.display(self._screen)
-        self._disp.set_backlight(1)
 
     def _render_albums(self):
         def format_album_item(album_title) -> str:
@@ -380,7 +387,8 @@ class Player:
         self._render_list(self.albums, self.album_index, format_album_item)
 
     def _render_artists(self):
-        self._render_list(self.artists, self.artist_index)
+        self._render_header("Artist Select")
+        self._render_list(self.artists, self.artist_index, HEADER_SIZE)
 
     def _render_discography(self):
         self._render_list(self.discography, self.ui_index)
