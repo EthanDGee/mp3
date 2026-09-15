@@ -48,6 +48,6 @@ HEADER_FONT = ImageFont.truetype(
 
 
 BACKGROUND_COLOR = "#000000"
-HIGHLIGHT_COLOR = "#37A537"
+HIGHLIGHT_COLOR = "#32CD32"
 # Needs to be one of the standard 256 colors
 PROGRESS_BAR_COLOR = "dodger_blue1"  # #0087ff

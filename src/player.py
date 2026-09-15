@@ -45,7 +45,7 @@ from utils import (
 # Player state and the associate color
 class ScreenState(Enum):
     AlbumSelect = "#8A2BE2"
-    ArtistSelect = "#32CD32"
+    ArtistSelect = "#FF3434"
     DiscographySelect = "#FFCF00"
     SongView = "#000000"
     CloudMenu = "#1E90FF"
@@ -286,7 +286,6 @@ class Player:
                 color = DEFAULT_HEADER_COLOR
             else:
                 color = self.state.value
-        print(f"Color:{color}")
 
         self._draw.rectangle((0, 0, DISP_HEIGHT, HEADER_SIZE), color)
         self._draw.text((0, 0), header, font=HEADER_FONT, fill=BACKGROUND_COLOR)
@@ -418,6 +417,8 @@ class Player:
         if new_mode == self.state:
             return
 
+        self.state = new_mode
+
         if new_mode == ScreenState.AlbumSelect:
             self._set_album_select_buttons()
             self._render_albums()
@@ -427,8 +428,8 @@ class Player:
             self._render_artists()
 
         elif new_mode == ScreenState.DiscographySelect:
-            self._render_discography()
             self._set_discography_select_buttons()
+            self._render_discography()
 
         elif new_mode == ScreenState.SongView:
             self._set_song_view_buttons(self.state)
@@ -437,8 +438,6 @@ class Player:
         elif new_mode == ScreenState.CloudMenu:
             self._set_cloud_menu_buttons()
             self._render_cloud_menu()
-
-        self.state = new_mode
 
     def cycle_modes(self, current_state: ScreenState, forward: bool):
         # go backwards or forwards into the next item in the cycle (with wrapping)
