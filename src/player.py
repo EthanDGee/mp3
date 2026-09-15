@@ -192,10 +192,10 @@ class Player:
 
     def get_artists(self) -> list[str]:
         self._ensure_connected()
-        artist_json = self.client.list("artist")
+        artist_json = self.client.list("albumartist")
         artists = []
         for i in artist_json:
-            artists.append(i["artist"])
+            artists.append(i["albumartist"])
 
         artists.sort()
         return artists
@@ -213,7 +213,7 @@ class Player:
     def get_discography(self, artist: str) -> list[str]:
         self._ensure_connected()
 
-        album_dict = self.client.list("album", "artist", artist)
+        album_dict = self.client.list("album", "albumartist", artist)
 
         releases = []
         for i in album_dict:
@@ -229,7 +229,7 @@ class Player:
         if artist == None:
             self.client.findadd("album", album)
         else:
-            self.client.findadd("album", album, "artist", artist)
+            self.client.findadd("album", album, "albumartist", artist)
         self.client.play()
 
         # add a slight delay to avoid race conditions
