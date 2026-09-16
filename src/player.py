@@ -3,26 +3,20 @@ import time
 import urllib.parse
 from pathlib import Path
 
-from gpiozero import Button
 from mpd import ConnectionError as MPDConnectionError
 from mpd import MPDClient
 
 from cloud_syncing import CloudSync
 from constants import (
-    BOUNCE_TIME,
-    BUTTONS,
     CONNECTION_PORT,
     CONNECTION_TIMEOUT,
-    HELD_BUTTON_DURATION,
     MUSIC_DIR,
     SCREEN_INACTIVITY_THRESHOLD,
-    VOLUME_INCREMENT,
 )
 from display import Display, ScreenState
+from input import Input
 from utils import (
-    decrement_no_wrap,
     decrement_with_wrap,
-    increment_no_wrap,
     increment_with_wrap,
 )
 
@@ -45,33 +39,6 @@ class Player:
 
         # initialize cloud syncing manager
         self.cloud = CloudSync()
-
-        # initialize buttons
-        self.a_button = Button(
-            BUTTONS.A.value,
-            pull_up=True,
-            bounce_time=BOUNCE_TIME,
-            hold_time=HELD_BUTTON_DURATION,
-        )
-        self.b_button = Button(
-            BUTTONS.B.value,
-            pull_up=True,
-            bounce_time=BOUNCE_TIME,
-            hold_time=HELD_BUTTON_DURATION,
-        )
-        self.x_button = Button(
-            BUTTONS.X.value,
-            pull_up=True,
-            bounce_time=BOUNCE_TIME,
-            hold_time=HELD_BUTTON_DURATION,
-        )
-        self.y_button = Button(
-            BUTTONS.Y.value,
-            pull_up=True,
-            bounce_time=BOUNCE_TIME,
-            hold_time=HELD_BUTTON_DURATION,
-        )
-
         # Library Info
         self.albums = self.get_albums()
         self.artists = self.get_artists()
@@ -88,6 +55,9 @@ class Player:
         self.current_album = None
 
         self.playing: bool = False
+
+        # initialize button input handling
+        self.input = Input(self)
 
         self.state = ScreenState.SongView  # assigned temporarily
         self.switch_modes(ScreenState.ArtistSelect)
@@ -236,23 +206,23 @@ class Player:
         self.state = new_mode
 
         if new_mode == ScreenState.AlbumSelect:
-            self._set_album_select_buttons()
+            self.input._set_album_select_buttons()
             self._render_albums()
 
         elif new_mode == ScreenState.ArtistSelect:
-            self._set_artist_select_buttons()
+            self.input._set_artist_select_buttons()
             self._render_artists()
 
         elif new_mode == ScreenState.DiscographySelect:
-            self._set_discography_select_buttons()
+            self.input._set_discography_select_buttons()
             self._render_discography()
 
         elif new_mode == ScreenState.SongView:
-            self._set_song_view_buttons(previous_state)
+            self.input._set_song_view_buttons(previous_state)
             self._render_song()
 
         elif new_mode == ScreenState.CloudMenu:
-            self._set_cloud_menu_buttons()
+            self.input._set_cloud_menu_buttons()
             self._render_cloud_menu()
 
     def cycle_modes(self, current_state: ScreenState, forward: bool):
@@ -290,242 +260,6 @@ class Player:
             self.albums = self.get_albums()
             self.album_index = 0
         self.switch_modes(new_mode)
-
-    def _unbind_buttons(self) -> None:
-        # at base all buttons should simply reset the screen timeout
-        def _unbind_button(button: Button) -> None:
-            button.when_pressed = self.display.reset_screen_timeout
-            button.when_released = None
-            button.when_held = self.display.reset_screen_timeout
-
-        _unbind_button(self.a_button)
-        _unbind_button(self.b_button)
-        _unbind_button(self.x_button)
-        _unbind_button(self.y_button)
-
-    # python functions are first class but have no type int typing so this meets the standards
-
-    def _bind_button(self, button, short_press, long_press=None) -> None:
-        # to avoid firing the when released action after a button has been held
-        # we track a boolean field that is linked to the button and toggled by
-        # a when_held trigger. This prevents the short_press from being triggered
-        # after the held button is released.
-
-        # (Tracked via a local dictionary to bypass gpiozero's strict attributes)
-        state = {"was_held": False}
-
-        def handle_long_press():
-            state["was_held"] = True
-            if long_press:
-                long_press()
-
-        def handle_short_press():
-            # toggle was_held after the button was released
-            if state["was_held"]:
-                state["was_held"] = False
-            else:
-                # It was a short press.
-                if short_press:
-                    short_press()
-
-        button.when_held = handle_long_press if long_press else None
-        button.when_released = handle_short_press
-
-    def _set_album_select_buttons(self) -> None:
-        self._unbind_buttons()
-
-        # Incrementation and decrementing are reversed to account
-        # for album ordering on render_albums() going from 0 down
-        def _move_down():
-            self.display.reset_screen_timeout()
-            self.album_index = increment_no_wrap(self.album_index, len(self.albums) - 1)
-            self._render_albums()
-
-        def _move_up():
-            self.display.reset_screen_timeout()
-            self.album_index = decrement_no_wrap(self.album_index)
-            self._render_albums()
-
-        def _play_album():
-            self.display.reset_screen_timeout()
-            highlighted_album = self.albums[self.album_index]
-
-            if self.current_album != highlighted_album:
-                self.current_album = highlighted_album
-                self.play_album(highlighted_album)
-
-            self.switch_modes(ScreenState.SongView)
-
-        def _toggle_play():
-            self.display.reset_screen_timeout()
-            self.toggle_play()
-            self._render_albums()
-
-        def _cycle_forward():
-            self.display.reset_screen_timeout()
-            self.cycle_modes(ScreenState.AlbumSelect, True)
-
-        def _cycle_backward():
-            self.display.reset_screen_timeout()
-            self.cycle_modes(ScreenState.AlbumSelect, False)
-
-        self._bind_button(self.y_button, _move_up, _cycle_forward)
-        self._bind_button(self.x_button, _move_down, _cycle_backward)
-        self._bind_button(self.b_button, _play_album, None)
-        self._bind_button(self.a_button, _toggle_play, None)
-
-    def _set_artist_select_buttons(self) -> None:
-        self._unbind_buttons()
-
-        # Incrementation and decrementing are reversed to account
-        # for album ordering on render_albums() going from 0 down
-        def _move_down():
-            self.display.reset_screen_timeout()
-            self.artist_index = increment_no_wrap(
-                self.artist_index, len(self.artists) - 1
-            )
-            self._render_artists()
-
-        def _move_up():
-            self.display.reset_screen_timeout()
-            self.artist_index = decrement_no_wrap(self.artist_index)
-            self._render_artists()
-
-        def _go_to_discography():
-            self.display.reset_screen_timeout()
-            highlighted_artist = self.artists[self.artist_index]
-            self.discography = self.get_discography(highlighted_artist)
-
-            self.switch_modes(ScreenState.DiscographySelect)
-
-        def _toggle_play():
-            self.display.reset_screen_timeout()
-            self.toggle_play()
-            self._render_artists()
-
-        def _cycle_forward():
-            self.display.reset_screen_timeout()
-            self.cycle_modes(ScreenState.ArtistSelect, True)
-
-        def _cycle_backward():
-            self.display.reset_screen_timeout()
-            self.cycle_modes(ScreenState.ArtistSelect, False)
-
-        self._bind_button(self.y_button, _move_up, _cycle_forward)
-        self._bind_button(self.x_button, _move_down, _cycle_backward)
-        self._bind_button(self.b_button, _go_to_discography, None)
-        self._bind_button(self.a_button, _toggle_play, None)
-
-    def _set_discography_select_buttons(self) -> None:
-        self._unbind_buttons()
-
-        # Incrementation and decrementing are reversed to account
-        # for album ordering on render_albums() going from 0 down
-        def _move_down():
-            self.display.reset_screen_timeout()
-            self.ui_index = increment_no_wrap(self.ui_index, len(self.discography) - 1)
-            self._render_discography()
-
-        def _move_up():
-            self.display.reset_screen_timeout()
-            self.ui_index = decrement_no_wrap(self.ui_index)
-            self._render_discography()
-
-        def _return_to_artist_select():
-            self.display.reset_screen_timeout()
-            self.switch_modes(ScreenState.ArtistSelect)
-
-        def _play_album():
-            self.display.reset_screen_timeout()
-            artist = self.artists[self.artist_index]
-            album = self.discography[self.ui_index]
-            self.play_album(album=album, artist=artist)
-            self.switch_modes(ScreenState.SongView)
-
-        def _toggle_play():
-            self.display.reset_screen_timeout()
-            self.toggle_play()
-            self._render_discography()
-
-        self._bind_button(self.y_button, _move_up, _return_to_artist_select)
-        self._bind_button(self.x_button, _move_down, None)
-        self._bind_button(self.b_button, _play_album, None)
-        self._bind_button(self.a_button, _toggle_play, None)
-
-    def _set_cloud_menu_buttons(self) -> None:
-        self._unbind_buttons()
-
-        # Incrementation and decrementing are reversed to account
-        # for album ordering on render_albums() going from 0 down
-        total_options = len(self.cloud.actions.keys())
-
-        def _move_down():
-            self.display.reset_screen_timeout()
-            self.ui_index = increment_no_wrap(self.ui_index, total_options - 1)
-            self._render_cloud_menu()
-
-        def _move_up():
-            self.display.reset_screen_timeout()
-            self.ui_index = decrement_no_wrap(self.ui_index)
-            self._render_cloud_menu()
-
-        def _activate_cloud_action():
-            self.display.reset_screen_timeout()
-            actions = list(self.cloud.actions.keys())
-            selected_action = actions[self.ui_index]
-            self.cloud.take_action(selected_action)
-            self._render_cloud_menu()
-
-        def _cycle_forward():
-            self.display.reset_screen_timeout()
-            self.cycle_modes(ScreenState.CloudMenu, True)
-
-        def _cycle_backward():
-            self.display.reset_screen_timeout()
-            self.cycle_modes(ScreenState.CloudMenu, False)
-
-        self._bind_button(self.y_button, _move_up, _cycle_forward)
-        self._bind_button(self.x_button, _move_down, _cycle_backward)
-        self._bind_button(self.b_button, _activate_cloud_action, None)
-
-    def _set_song_view_buttons(self, previous_screen: ScreenState) -> None:
-        # previous_screen makes it possible to back track to the menu that song view was entered from.
-        self._unbind_buttons()
-
-        def _back_to_previous_screen():
-            self.display.reset_screen_timeout()
-            print(f"moving to {previous_screen}")
-            self.switch_modes(previous_screen)
-
-        def _volume_up():
-            self.display.reset_screen_timeout()
-            self.client.volume(VOLUME_INCREMENT)
-
-        def _next_song():
-            self.display.reset_screen_timeout()
-            self.client.next()
-            self._render_song()
-
-        def _volume_down():
-            self.display.reset_screen_timeout()
-            self.client.volume(-VOLUME_INCREMENT)
-
-        def _prev_song():
-            self.display.reset_screen_timeout()
-            self.client.prev()
-            self._render_song()
-
-        def _toggle_play():
-            self.display.reset_screen_timeout()
-            self.toggle_play()
-            show_text = not self._is_playing_music()
-
-            self._render_song(show_text)
-
-        self._bind_button(self.y_button, _back_to_previous_screen)
-        self._bind_button(self.b_button, _volume_up, _next_song)
-        self._bind_button(self.a_button, _volume_down, _prev_song)
-        self._bind_button(self.x_button, _toggle_play)
 
 
 if __name__ == "__main__":
