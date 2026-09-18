@@ -12,6 +12,7 @@ from constants import (
     CONNECTION_TIMEOUT,
     MUSIC_DIR,
     SCREEN_INACTIVITY_THRESHOLD,
+    VOLUME_INCREMENT,
 )
 from display import Display, ScreenState
 from input import Input
@@ -88,6 +89,22 @@ class Player:
             self.client.pause()
         else:
             self.client.play()
+
+    def raise_volume(self) -> None:
+        self._ensure_connected()
+        self.client.volume(VOLUME_INCREMENT)
+
+    def lower_volume(self) -> None:
+        self._ensure_connected()
+        self.client.volume(-VOLUME_INCREMENT)
+
+    def next_song(self) -> None:
+        self._ensure_connected()
+        self.client.next()
+
+    def prev_song(self) -> None:
+        self._ensure_connected()
+        self.client.prev()
 
     def get_artists(self) -> list[str]:
         self._ensure_connected()
