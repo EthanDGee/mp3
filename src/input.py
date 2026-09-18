@@ -6,7 +6,6 @@ from constants import (
     BOUNCE_TIME,
     BUTTONS,
     HELD_BUTTON_DURATION,
-    VOLUME_INCREMENT,
 )
 from display import ScreenState
 from utils import (
@@ -81,11 +80,11 @@ class Input:
 
     def _raise_volume(self) -> None:
         self.player.display.reset_screen_timeout()
-        self.player.client.volume(VOLUME_INCREMENT)
+        self.player.raise_volume()
 
     def _lower_volume(self) -> None:
         self.player.display.reset_screen_timeout()
-        self.player.client.volume(-VOLUME_INCREMENT)
+        self.player.lower_volume()
 
     def _toggle_play(self, render_func) -> None:
         self.player.display.reset_screen_timeout()
@@ -271,12 +270,12 @@ class Input:
 
         def _next_song():
             self.player.display.reset_screen_timeout()
-            self.player.client.next()
+            self.player.next_song()
             self.player._render_song()
 
         def _prev_song():
             self.player.display.reset_screen_timeout()
-            self.player.client.prev()
+            self.player.prev_song()
             self.player._render_song()
 
         def _toggle_play():
